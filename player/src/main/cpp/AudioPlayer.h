@@ -24,10 +24,12 @@ private:
     jmethodID jmidOnparpared;
     jmethodID jmidOnError = NULL;
     jmethodID jmidMetadata = NULL;
+    jmethodID jmidBaseInfo = NULL;
 
     jobject objOnError = NULL;
     jobject objOnPrepared = NULL;
     jobject objMetaData = NULL;
+    jobject objBaseInfo = NULL;
 
 
     AVFormatContext *pFormatCtx = NULL;
@@ -44,12 +46,15 @@ public:
     void setOnPreparedListener(jmethodID listener, jobject obj);
     void setOnErrorListener(jmethodID listener, jobject obj);
     void setMetaDataListener(jmethodID listener, jobject obj);
+    void setBaseInfoListener(jmethodID listener, jobject obj);
+
     void setPrepared();
     void setSource(const char* path);
 
     void onError(const char* s, int errorCode);
     void onPrepared(const char* s);
     void onGetMetaData(const char* key, const char* value);
+    void onBaseInfo(const char* key, const char* value);
 
     void prepared_fun();
 };

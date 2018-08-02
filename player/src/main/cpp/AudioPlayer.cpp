@@ -44,8 +44,20 @@ AudioPlayer::~AudioPlayer() {
 
     if(this->jmidOnparpared)
         env->DeleteGlobalRef(this->objOnPrepared);
+
+    if(this->jmidBaseInfo)
+        env->DeleteGlobalRef(this->objBaseInfo);
+
     this->g_javaVM->DetachCurrentThread();
 }
+
+
+void AudioPlayer::setBaseInfoListener(jmethodID listener, jobject obj) {
+    LOGD("jni set on base info listener.\n");
+    this->jmidBaseInfo = listener;
+    this->objBaseInfo = obj;
+}
+
 
 void AudioPlayer::setOnErrorListener(jmethodID listener, jobject obj) {
     LOGD("jni set on error listener.\n");
@@ -65,12 +77,25 @@ void AudioPlayer::setMetaDataListener(jmethodID listener, jobject obj) {
     this->objMetaData = obj;
 }
 
+void AudioPlayer::onBaseInfo(const char* key, const char* value){
+    if(this->jmidBaseInfo){
+        JNIEnv *env;
+        this->g_javaVM->AttachCurrentThread(&env, NULL);
+        jstring k = env->NewStringUTF(key);
+        jstring v = env->NewStringUTF(value);
+        env->CallObjectMethod(this->objBaseInfo, this->jmidBaseInfo, k, v);
+        env->DeleteLocalRef(k);
+        env->DeleteLocalRef(v);
+        this->g_javaVM->DetachCurrentThread();
+    }
+}
+
 void AudioPlayer::onPrepared(const char *s) {
     if(this->jmidOnparpared){
         JNIEnv *env;
         this->g_javaVM->AttachCurrentThread(&env, NULL);
         jstring str_arg = env->NewStringUTF(s);
-        env->CallObjectMethod(objOnPrepared, jmidOnparpared, str_arg);
+        env->CallObjectMethod(this->objOnPrepared, this->jmidOnparpared, str_arg);
         env->DeleteLocalRef(str_arg);
         this->g_javaVM->DetachCurrentThread();
     }
@@ -82,7 +107,7 @@ void AudioPlayer::onError(const char* s, int errorCode) {
         JNIEnv *env;
         this->g_javaVM->AttachCurrentThread(&env, NULL);
         jstring str_arg = env->NewStringUTF(s);
-        env->CallObjectMethod(objOnError, jmidOnError, str_arg, errorCode);
+        env->CallObjectMethod(this->objOnError, this->jmidOnError, str_arg, errorCode);
         env->DeleteLocalRef(str_arg);
         this->g_javaVM->DetachCurrentThread();
     }
@@ -94,7 +119,7 @@ void AudioPlayer::onGetMetaData(const char *key, const char *value) {
         this->g_javaVM->AttachCurrentThread(&env, NULL);
         jstring k = env->NewStringUTF(key);
         jstring v = env->NewStringUTF(value);
-        env->CallObjectMethod(objMetaData, jmidMetadata, k, v);
+        env->CallObjectMethod(this->objMetaData, this->jmidMetadata, k, v);
         env->DeleteLocalRef(k);
         env->DeleteLocalRef(v);
         this->g_javaVM->DetachCurrentThread();
@@ -127,24 +152,12 @@ void AudioPlayer::prepared_fun() {
         return;
     }
 
-    int tns, thh, tmm, tss;
-    tns  = ( this->pFormatCtx->duration)/1000000;
-    thh  = tns / 3600;
-    tmm  = (tns % 3600) / 60;
-    tss  = (tns % 60);
-    LOGD("%02d:%02d:%02d",thh,tmm,tss);
-    LOGD("Format name : %s\n", this->pFormatCtx->iformat->name);
-    if(this->pFormatCtx->bit_rate){
-        LOGD("%lld kb/s",  (int64_t)this->pFormatCtx->bit_rate / 1000);
-    }
-
+    /*get meta data sent java*/
     AVDictionaryEntry *m = NULL;
     while(m = av_dict_get(pFormatCtx->metadata,"",m,AV_DICT_IGNORE_SUFFIX)) {
         LOGD("key : %s, value : %s\n", m->key, m->value);
         this->onGetMetaData(m->key, m->value);
     }
-
-
 
     for(int i = 0; i < this->pFormatCtx->nb_streams; i++)
     {
@@ -164,7 +177,18 @@ void AudioPlayer::prepared_fun() {
         }
     }
 
-    LOGD("%d Hz", this->avCodecParameters->sample_rate);
+    /*get audio base info sent java*/
+    char buf[512];
+    int duration  = ( this->pFormatCtx->duration)/1000000;
+    sprintf(buf, "%d:%02d:%02d",duration);
+    this->onBaseInfo("duration", buf);
+    this->onBaseInfo("format", this->pFormatCtx->iformat->name);
+
+    sprintf(buf, "%lld kb/s", (int64_t)this->pFormatCtx->bit_rate / 1000);
+    this->onBaseInfo("bit_rate", buf);
+
+    sprintf(buf, "%d Hz", this->avCodecParameters->sample_rate);
+    this->onBaseInfo("sample_rate", buf);
 
     this->avCodecContext = avcodec_alloc_context3(this->avCodec);
     if(!avCodecContext){

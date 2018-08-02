@@ -10,7 +10,7 @@ import cn.cnr.player.CNPlayer;
 import cn.cnr.player.CNTrace;
 
 public class MainActivity extends AppCompatActivity implements AudioPlayer.OnPreparedListener, AudioPlayer.OnErrorListener,
-    AudioPlayer.OnMetadataListener{
+    AudioPlayer.OnMetadataListener, AudioPlayer.OnBaseInfoListener{
 
     private AudioPlayer player = null;
 
@@ -23,6 +23,7 @@ public class MainActivity extends AppCompatActivity implements AudioPlayer.OnPre
         player.setOnErrorListener(this);
         player.setOnPreparedListener(this);
         player.setMetadataListener(this);
+        player.setBaseInfoListener(this);
     }
 
     public void audio_prepared(View view) {
@@ -50,5 +51,10 @@ public class MainActivity extends AppCompatActivity implements AudioPlayer.OnPre
     @Override
     public void onMetaData(String key, String value) {
         CNTrace.d("MetaData key : " + key + ", value : " + value);
+    }
+
+    @Override
+    public void onBaseInfo(String key, String value) {
+        CNTrace.d("onBaseInfo key : " + key + ", value : " + value);
     }
 }

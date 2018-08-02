@@ -7,6 +7,7 @@ class CNAudioPlayer implements AudioPlayer {
     private native void set_onprepared_listener(OnPreparedListener listener);
     private native void set_onerror_listener(OnErrorListener listener);
     private native void set_metadata_listener(OnMetadataListener listener);
+    private native void set_base_info_listener(OnBaseInfoListener listener);
 
     public CNAudioPlayer(){
         create_audio();
@@ -40,6 +41,11 @@ class CNAudioPlayer implements AudioPlayer {
     @Override
     public void setMetadataListener(OnMetadataListener listener) {
         set_metadata_listener(listener);
+    }
+
+    @Override
+    public void setBaseInfoListener(OnBaseInfoListener listener) {
+        set_base_info_listener(listener);
     }
 
     @Override

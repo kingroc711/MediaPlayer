@@ -96,7 +96,7 @@ Java_cn_cnr_player_CNAudioPlayer_set_1metadata_1listener(JNIEnv *env, jobject in
     jclass  jlz = env->GetObjectClass(listener);
     if(!jlz){
         LOGD("get metadata listener class fail !");
-        gAudioPlayer->onError("get onError listener error !", -1);
+        gAudioPlayer->onError("get metadata listener error !", -1);
         return;
     }
 
@@ -108,4 +108,24 @@ Java_cn_cnr_player_CNAudioPlayer_set_1metadata_1listener(JNIEnv *env, jobject in
     }
 
     gAudioPlayer->setMetaDataListener(j, env->NewGlobalRef(listener));
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_cn_cnr_player_CNAudioPlayer_set_1base_1info_1listener(JNIEnv *env, jobject instance, jobject listener) {
+    jclass  jlz = env->GetObjectClass(listener);
+    if(!jlz){
+        LOGD("get base info listener class fail !");
+        gAudioPlayer->onError("get base info listener error !", -1);
+        return;
+    }
+
+    jmethodID j = env->GetMethodID(jlz, "onBaseInfo", "(Ljava/lang/String;Ljava/lang/String;)V");
+    if(!j){
+        LOGD("get base info listener method fail !");
+        gAudioPlayer->onError("get base info listener method fail !", -1);
+        return;
+    }
+
+    gAudioPlayer->setBaseInfoListener(j, env->NewGlobalRef(listener));
 }

@@ -8,9 +8,15 @@ public interface AudioPlayer {
     void seek(int sec);
     void setSource(String path);
     void setLooping(boolean looping);
+
     void setOnPreparedListener(OnPreparedListener listener);
     void setOnErrorListener(OnErrorListener listener);
     void setMetadataListener(OnMetadataListener listener);
+    void setBaseInfoListener(OnBaseInfoListener listener);
+
+    interface OnBaseInfoListener{
+        void onBaseInfo(String key, String value);
+    }
 
     interface OnPreparedListener {
         void onPrepared(String s);
