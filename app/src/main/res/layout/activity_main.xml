@@ -32,4 +32,12 @@
         android:text="start"
         />
 
+    <ImageView
+        android:id="@+id/b_pic"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:onClick="audio_start"
+        android:text="here show pic"
+        />
+
 </LinearLayout>

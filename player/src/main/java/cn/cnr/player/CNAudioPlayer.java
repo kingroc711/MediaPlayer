@@ -8,6 +8,7 @@ class CNAudioPlayer implements AudioPlayer {
     private native void set_onerror_listener(OnErrorListener listener);
     private native void set_metadata_listener(OnMetadataListener listener);
     private native void set_base_info_listener(OnBaseInfoListener listener);
+    private native void set_get_pic_listener(OnGetPicListener listener, String path);
 
     public CNAudioPlayer(){
         create_audio();
@@ -46,6 +47,11 @@ class CNAudioPlayer implements AudioPlayer {
     @Override
     public void setBaseInfoListener(OnBaseInfoListener listener) {
         set_base_info_listener(listener);
+    }
+
+    @Override
+    public void setGetPicListener(OnGetPicListener listener, String path) {
+        set_get_pic_listener(listener, path);
     }
 
     @Override

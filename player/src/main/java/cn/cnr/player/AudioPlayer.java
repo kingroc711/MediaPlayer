@@ -13,6 +13,11 @@ public interface AudioPlayer {
     void setOnErrorListener(OnErrorListener listener);
     void setMetadataListener(OnMetadataListener listener);
     void setBaseInfoListener(OnBaseInfoListener listener);
+    void setGetPicListener(OnGetPicListener listener, String path);
+
+    interface OnGetPicListener{
+        void onGetPic(String path);
+    }
 
     interface OnBaseInfoListener{
         void onBaseInfo(String key, String value);

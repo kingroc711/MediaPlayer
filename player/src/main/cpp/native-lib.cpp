@@ -129,3 +129,26 @@ Java_cn_cnr_player_CNAudioPlayer_set_1base_1info_1listener(JNIEnv *env, jobject 
 
     gAudioPlayer->setBaseInfoListener(j, env->NewGlobalRef(listener));
 }
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_cn_cnr_player_CNAudioPlayer_set_1get_1pic_1listener(JNIEnv *env, jobject instance, jobject listener, jstring path_) {
+    const char *path = env->GetStringUTFChars(path_, 0);
+    jclass  jlz = env->GetObjectClass(listener);
+    if(!jlz){
+        LOGD("get pic listener class fail !");
+        gAudioPlayer->onError("get pic listener error !", -1);
+        return;
+    }
+
+    jmethodID j = env->GetMethodID(jlz, "onGetPic", "(Ljava/lang/String;)V");
+    if(!j){
+        LOGD("get pic listener method fail !");
+        gAudioPlayer->onError("get pic  listener method fail !", -1);
+        return;
+    }
+
+    gAudioPlayer->setGetPicListener(j, env->NewGlobalRef(listener), path);
+
+    env->ReleaseStringUTFChars(path_, path);
+}

@@ -19,17 +19,21 @@ using  std::string;
 
 class AudioPlayer {
 private:
-    char *path;
+    char* path;
+    char* picPath;
+
     JavaVM *g_javaVM = NULL;
     jmethodID jmidOnparpared;
     jmethodID jmidOnError = NULL;
     jmethodID jmidMetadata = NULL;
     jmethodID jmidBaseInfo = NULL;
+    jmethodID jmidGetPic = NULL;
 
     jobject objOnError = NULL;
     jobject objOnPrepared = NULL;
     jobject objMetaData = NULL;
     jobject objBaseInfo = NULL;
+    jobject objGetPic = NULL;
 
 
     AVFormatContext *pFormatCtx = NULL;
@@ -47,6 +51,7 @@ public:
     void setOnErrorListener(jmethodID listener, jobject obj);
     void setMetaDataListener(jmethodID listener, jobject obj);
     void setBaseInfoListener(jmethodID listener, jobject obj);
+    void setGetPicListener(jmethodID listener, jobject obj, const char* path);
 
     void setPrepared();
     void setSource(const char* path);
@@ -55,6 +60,7 @@ public:
     void onPrepared(const char* s);
     void onGetMetaData(const char* key, const char* value);
     void onBaseInfo(const char* key, const char* value);
+    void onGetPic(const char* path);
 
     void prepared_fun();
 };

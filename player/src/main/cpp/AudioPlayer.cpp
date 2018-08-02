@@ -1,7 +1,3 @@
-//
-// Created by king on 18-7-18.
-//
-
 #include "AudioPlayer.h"
 #include "AndroidLog.h"
 
@@ -34,6 +30,8 @@ AudioPlayer::AudioPlayer(JavaVM *g_javaVM) {
 
 AudioPlayer::~AudioPlayer() {
     free (this->path);
+    free (this->picPath);
+
     JNIEnv *env;
     this->g_javaVM->AttachCurrentThread(&env, NULL);
     if(this->jmidMetadata)
@@ -49,6 +47,15 @@ AudioPlayer::~AudioPlayer() {
         env->DeleteGlobalRef(this->objBaseInfo);
 
     this->g_javaVM->DetachCurrentThread();
+}
+
+void AudioPlayer::setGetPicListener(jmethodID listener, jobject obj, const char* path) {
+    LOGD("jni set get pic listener.\n");
+    this->jmidGetPic = listener;
+    this->objGetPic = obj;
+
+    this->picPath = (char*)malloc(strlen(path) + 1);
+    strcpy(this->picPath, path);
 }
 
 
@@ -75,6 +82,17 @@ void AudioPlayer::setMetaDataListener(jmethodID listener, jobject obj) {
     LOGD("jni set metaData listener.\n");
     this->jmidMetadata = listener;
     this->objMetaData = obj;
+}
+
+void AudioPlayer::onGetPic(const char* path) {
+    if(this->jmidGetPic){
+        JNIEnv *env;
+        this->g_javaVM->AttachCurrentThread(&env, NULL);
+        jstring s = env->NewStringUTF(path);
+        env->CallObjectMethod(this->objGetPic, this->jmidGetPic, s);
+        env->DeleteLocalRef(s);
+        this->g_javaVM->DetachCurrentThread();
+    }
 }
 
 void AudioPlayer::onBaseInfo(const char* key, const char* value){
@@ -159,10 +177,9 @@ void AudioPlayer::prepared_fun() {
         this->onGetMetaData(m->key, m->value);
     }
 
-    for(int i = 0; i < this->pFormatCtx->nb_streams; i++)
-    {
-        if(this->pFormatCtx->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_AUDIO)//得到音频流
-        {
+    /*here get avCodeParameters and avCodec*/
+    for(int i = 0; i < this->pFormatCtx->nb_streams; i++) {
+        if(this->pFormatCtx->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_AUDIO){
             LOGI("AVFormatContext nb streams : %d code_type \n", i);
             this->avCodecParameters = pFormatCtx->streams[i]->codecpar;
             this->avCodec = avcodec_find_decoder(this->avCodecParameters->codec_id);
@@ -172,6 +189,25 @@ void AudioPlayer::prepared_fun() {
                 return;
             } else{
                 LOGI("find audio codec\n");
+                break;
+            }
+        }
+    }
+
+    /*here get pic from audio*/
+    if(this->jmidGetPic) {
+        for (int i = 0; i < pFormatCtx->nb_streams; i++) {
+            if (this->pFormatCtx->streams[i]->disposition & AV_DISPOSITION_ATTACHED_PIC) {
+                char buf[128];
+                sprintf(buf, "%s", this->picPath);
+                char* e = strrchr(this->path, '/');
+                strcat(buf, e);
+                LOGD("pic file name : %s\n", buf);
+                AVPacket pkt = this->pFormatCtx->streams[i]->attached_pic;
+                FILE* album_art = fopen(buf, "wb");
+                fwrite(pkt.data, pkt.size, 1, album_art);
+                fclose(album_art);
+                this->onGetPic(buf);
                 break;
             }
         }
@@ -213,4 +249,3 @@ void AudioPlayer::prepared_fun() {
 
     return;
 }
-
