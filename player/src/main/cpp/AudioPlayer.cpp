@@ -1,3 +1,4 @@
+#include <unistd.h>
 #include "AudioPlayer.h"
 #include "AndroidLog.h"
 
@@ -31,6 +32,8 @@ AudioPlayer::AudioPlayer(JavaVM *g_javaVM) {
 AudioPlayer::~AudioPlayer() {
     free (this->path);
     free (this->picPath);
+
+    unlink(this->picPath);
 
     JNIEnv *env;
     this->g_javaVM->AttachCurrentThread(&env, NULL);
