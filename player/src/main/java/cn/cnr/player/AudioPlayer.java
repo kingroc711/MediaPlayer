@@ -9,6 +9,8 @@ public interface AudioPlayer {
     void setSource(String path);
     void setLooping(boolean looping);
 
+    String getStatus();
+
     void setOnPreparedListener(OnPreparedListener listener);
     void setOnErrorListener(OnErrorListener listener);
     void setMetadataListener(OnMetadataListener listener);

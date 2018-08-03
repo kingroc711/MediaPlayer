@@ -152,3 +152,11 @@ Java_cn_cnr_player_CNAudioPlayer_set_1get_1pic_1listener(JNIEnv *env, jobject in
 
     env->ReleaseStringUTFChars(path_, path);
 }
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_cn_cnr_player_CNAudioPlayer_get_1status(JNIEnv *env, jobject instance) {
+
+    return gAudioPlayer->getStatus();
+
+}

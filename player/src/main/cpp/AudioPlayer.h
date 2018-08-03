@@ -18,9 +18,21 @@ extern "C"
 using  std::string;
 
 class AudioPlayer {
+
+private:
+    enum Status {
+        AUDIO_CREATE = 0,
+        AUDIO_PREPARED = 1,
+        AUDIO_START = 2,
+        AUDIO_PAUSE = 3,
+        AUDIO_STOP = 4
+    };
+
 private:
     char* path;
     char* picPath;
+
+    Status playStatus;
 
     JavaVM *g_javaVM = NULL;
     jmethodID jmidOnparpared;
@@ -34,7 +46,6 @@ private:
     jobject objMetaData = NULL;
     jobject objBaseInfo = NULL;
     jobject objGetPic = NULL;
-
 
     AVFormatContext *pFormatCtx = NULL;
     AVCodec *avCodec = NULL;
@@ -63,6 +74,9 @@ public:
     void onGetPic(const char* path);
 
     void prepared_fun();
+
+    void setStatus(Status status);
+    int getStatus();
 };
 
 

@@ -27,6 +27,7 @@ void AudioPlayer::setSource(const char* path) {
 
 AudioPlayer::AudioPlayer(JavaVM *g_javaVM) {
     this->g_javaVM = g_javaVM;
+    this->setStatus(AUDIO_CREATE);
 }
 
 AudioPlayer::~AudioPlayer() {
@@ -219,7 +220,7 @@ void AudioPlayer::prepared_fun() {
     /*get audio base info sent java*/
     char buf[512];
     int duration  = ( this->pFormatCtx->duration)/1000000;
-    sprintf(buf, "%d:%02d:%02d",duration);
+    sprintf(buf, "%d",duration);
     this->onBaseInfo("duration", buf);
     this->onBaseInfo("format", this->pFormatCtx->iformat->name);
 
@@ -250,5 +251,16 @@ void AudioPlayer::prepared_fun() {
 
     LOGD("avcodec open success !\n");
 
+    this->setStatus(AUDIO_PREPARED);
+    this->onPrepared("");
+
     return;
+}
+
+int AudioPlayer::getStatus() {
+   return this->playStatus;
+}
+
+void AudioPlayer::setStatus(AudioPlayer::Status status) {
+    this->playStatus = status;
 }

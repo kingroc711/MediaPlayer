@@ -44,6 +44,8 @@ public class MainActivity extends AppCompatActivity implements AudioPlayer.OnPre
         imageView = (ImageView)findViewById(R.id.b_pic);
 
         player = CNPlayer.getAudioPlayerInstance();
+        CNTrace.d("player statue : " + player.getStatus());
+
         player.setOnErrorListener(this);
         player.setOnPreparedListener(this);
         player.setMetadataListener(this);
@@ -66,6 +68,7 @@ public class MainActivity extends AppCompatActivity implements AudioPlayer.OnPre
     @Override
     public void onPrepared(String s) {
         CNTrace.d("onPrepared : " + s);
+        CNTrace.d("player statue : " + player.getStatus());
     }
 
     @Override

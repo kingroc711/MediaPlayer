@@ -9,6 +9,7 @@ class CNAudioPlayer implements AudioPlayer {
     private native void set_metadata_listener(OnMetadataListener listener);
     private native void set_base_info_listener(OnBaseInfoListener listener);
     private native void set_get_pic_listener(OnGetPicListener listener, String path);
+    private native int get_status();
 
     public CNAudioPlayer(){
         create_audio();
@@ -72,5 +73,26 @@ class CNAudioPlayer implements AudioPlayer {
     @Override
     public void setLooping(boolean looping) {
 
+    }
+
+    @Override
+    public String getStatus() {
+        int status = get_status();
+        CNTrace.d("get audio status : " + status);
+
+        switch (status){
+            case 0:
+                return "AUDIO_CREATE";
+            case 1:
+                return "AUDIO_PREPARED";
+            case 2:
+                return "AUDIO_START";
+            case 3:
+                return "AUDIO_PAUSE";
+            case 4:
+                return "AUDIO_STOP";
+                default:
+                    return "UNKNOW";
+        }
     }
 }
