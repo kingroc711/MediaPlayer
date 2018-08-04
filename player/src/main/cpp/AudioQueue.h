@@ -17,18 +17,18 @@ extern "C"
 
 class AudioQueue {
 
-public:
+private:
     std::queue<AVPacket*>queuePacket;
     pthread_mutex_t mutexPacket;
     pthread_cond_t condPacket;
+    unsigned  int dataSize;
 
 public:
     AudioQueue();
     ~AudioQueue();
 
-    int putAvpacket(AVPacket* packet);
-    int getAvpacket(AVPacket* packet);
-
+    void putAvpacket(AVPacket* packet);
+    int getAvpacket(AVPacket** packet);
 };
 
 

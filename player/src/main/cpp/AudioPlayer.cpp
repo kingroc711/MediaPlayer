@@ -28,11 +28,14 @@ void AudioPlayer::setSource(const char* path) {
 AudioPlayer::AudioPlayer(JavaVM *g_javaVM) {
     this->g_javaVM = g_javaVM;
     this->setStatus(AUDIO_CREATE);
+    this->audioQueue = new AudioQueue();
 }
 
 AudioPlayer::~AudioPlayer() {
     free (this->path);
     free (this->picPath);
+
+    delete(this->audioQueue);
 
     unlink(this->picPath);
 
@@ -177,7 +180,6 @@ void AudioPlayer::prepared_fun() {
     /*get meta data sent java*/
     AVDictionaryEntry *m = NULL;
     while(m = av_dict_get(pFormatCtx->metadata,"",m,AV_DICT_IGNORE_SUFFIX)) {
-        LOGD("key : %s, value : %s\n", m->key, m->value);
         this->onGetMetaData(m->key, m->value);
     }
 
@@ -185,6 +187,7 @@ void AudioPlayer::prepared_fun() {
     for(int i = 0; i < this->pFormatCtx->nb_streams; i++) {
         if(this->pFormatCtx->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_AUDIO){
             LOGI("AVFormatContext nb streams : %d code_type \n", i);
+            this->streamIndex = i;
             this->avCodecParameters = pFormatCtx->streams[i]->codecpar;
             this->avCodec = avcodec_find_decoder(this->avCodecParameters->codec_id);
             if(!this->avCodec){
@@ -253,6 +256,32 @@ void AudioPlayer::prepared_fun() {
 
     this->setStatus(AUDIO_PREPARED);
     this->onPrepared("");
+
+    while (this->getStatus() != AUDIO_STOP){
+        AVPacket *avPacket = av_packet_alloc();
+        int ret = av_read_frame(this->pFormatCtx, avPacket);
+        //LOGD("pts : %lld, dts : %lld, duration : %lld\n", avPacket->pts, avPacket->dts, avPacket->duration);
+        if(ret == 0){
+            if(avPacket->stream_index == this->streamIndex){
+                audioQueue->putAvpacket(avPacket);
+            }else{
+                av_packet_free(&avPacket);
+                av_free(avPacket);
+            }
+        }else{
+            LOGD("av read frame ret : %d\n", ret);
+            break;
+        }
+    }
+
+    LOGD("get data finish thread exit !\n");
+
+//    AVPacket* avPacket;
+//    while (this->audioQueue->getAvpacket(&avPacket) ==0){
+//        LOGD("pts : %lld, dts : %lld, duration : %lld\n", avPacket->pts, avPacket->dts, avPacket->duration);
+//        av_packet_free(&avPacket);
+//        av_free(avPacket);
+//    }
 
     return;
 }

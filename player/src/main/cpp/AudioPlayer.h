@@ -9,6 +9,7 @@
 #include <string>
 #include <jni.h>
 #include <pthread.h>
+#include "AudioQueue.h"
 
 extern "C"
 {
@@ -33,6 +34,7 @@ private:
     char* picPath;
 
     Status playStatus;
+    int streamIndex = -1;
 
     JavaVM *g_javaVM = NULL;
     jmethodID jmidOnparpared;
@@ -51,6 +53,8 @@ private:
     AVCodec *avCodec = NULL;
     AVCodecContext *avCodecContext = NULL;
     AVCodecParameters *avCodecParameters = NULL;
+
+    AudioQueue *audioQueue;
 
 public:
     pthread_t thread_t;

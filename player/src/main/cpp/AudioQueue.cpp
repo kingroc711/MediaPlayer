@@ -5,45 +5,51 @@
 #include "AudioQueue.h"
 
 AudioQueue::AudioQueue() {
-    pthread_mutex_init(&mutexPacket, NULL);
-    pthread_cond_init(&condPacket, NULL);
+    pthread_mutex_init(&this->mutexPacket, NULL);
+    pthread_cond_init(&this->condPacket, NULL);
+    this->dataSize = 0;
 }
 
 AudioQueue::~AudioQueue() {
-    pthread_mutex_destroy(&mutexPacket);
-    pthread_cond_destroy(&condPacket);
-}
+    pthread_mutex_destroy(&this->mutexPacket);
+    pthread_cond_destroy(&this->condPacket);
 
-int AudioQueue::putAvpacket(AVPacket *packet) {
-    pthread_mutex_lock(&mutexPacket);
-
-    queuePacket.push(packet);
-    LOGD("push packet %d.\n", queuePacket.size());
-
-    pthread_cond_signal(&condPacket);
-    pthread_mutex_unlock(&mutexPacket);
-    return 0;
-}
-
-int AudioQueue::getAvpacket(AVPacket *packet) {
-
-    while(1){
-        pthread_mutex_lock(&mutexPacket);
-        if(queuePacket.size() > 0){
-            AVPacket *avPacket = queuePacket.front();
-            if(av_packet_ref(packet, avPacket) == 0){
-                queuePacket.pop();
-                av_packet_free(&avPacket);
-                av_free(avPacket);
-                LOGD("get packet Success queue size : %d\n", queuePacket.size());
-            }else{
-                LOGD("get packet ref fail.");
-            }
-            pthread_mutex_unlock(&mutexPacket);
-        }else{
-            pthread_cond_wait(&condPacket, &mutexPacket);
-        }
+    if(this->queuePacket.size() > 0){
+        AVPacket *avPacket = this->queuePacket.front();
+        this->queuePacket.pop();
+        av_packet_free(&avPacket);
+        av_free(avPacket);
     }
+}
 
-    return 0;
+void AudioQueue::putAvpacket(AVPacket *packet) {
+    pthread_mutex_lock(&this->mutexPacket);
+    this->queuePacket.push(packet);
+    this->dataSize = this->dataSize + packet->size;
+
+    pthread_cond_signal(&this->condPacket);
+    pthread_mutex_unlock(&this->mutexPacket);
+}
+
+int AudioQueue::getAvpacket(AVPacket **packet) {
+
+        pthread_mutex_lock(&this->mutexPacket);
+        if(this->queuePacket.size() > 0){
+            *packet = this->queuePacket.front();
+            this->queuePacket.pop();
+//            AVPacket *avPacket = this->queuePacket.front();
+//            if(av_packet_ref(packet, avPacket) == 0){
+//                this->dataSize = this->dataSize - packet->size;
+//                this->queuePacket.pop();
+//                av_packet_free(&avPacket);
+//                av_free(avPacket);
+//            }else{
+//                LOGD("get packet ref fail.");
+//            }
+            pthread_mutex_unlock(&this->mutexPacket);
+            return 0;
+        }else{
+            pthread_cond_wait(&this->condPacket, &this->mutexPacket);
+            return -1;
+        }
 }
