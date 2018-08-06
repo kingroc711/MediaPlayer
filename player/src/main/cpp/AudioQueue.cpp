@@ -36,16 +36,8 @@ int AudioQueue::getAvpacket(AVPacket **packet) {
         pthread_mutex_lock(&this->mutexPacket);
         if(this->queuePacket.size() > 0){
             *packet = this->queuePacket.front();
+            this->dataSize = this->dataSize - (*packet)->size;
             this->queuePacket.pop();
-//            AVPacket *avPacket = this->queuePacket.front();
-//            if(av_packet_ref(packet, avPacket) == 0){
-//                this->dataSize = this->dataSize - packet->size;
-//                this->queuePacket.pop();
-//                av_packet_free(&avPacket);
-//                av_free(avPacket);
-//            }else{
-//                LOGD("get packet ref fail.");
-//            }
             pthread_mutex_unlock(&this->mutexPacket);
             return 0;
         }else{

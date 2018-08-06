@@ -10,6 +10,7 @@ class CNAudioPlayer implements AudioPlayer {
     private native void set_base_info_listener(OnBaseInfoListener listener);
     private native void set_get_pic_listener(OnGetPicListener listener, String path);
     private native int get_status();
+    private native void set_onbufferupdate_listener(OnBufferUpdateListener listener);
 
     public CNAudioPlayer(){
         create_audio();
@@ -53,6 +54,11 @@ class CNAudioPlayer implements AudioPlayer {
     @Override
     public void setGetPicListener(OnGetPicListener listener, String path) {
         set_get_pic_listener(listener, path);
+    }
+
+    @Override
+    public void setBufferUpdateListener(OnBufferUpdateListener listener) {
+        set_onbufferupdate_listener(listener);
     }
 
     @Override

@@ -16,7 +16,7 @@ import cn.cnr.player.CNPlayer;
 import cn.cnr.player.CNTrace;
 
 public class MainActivity extends AppCompatActivity implements AudioPlayer.OnPreparedListener, AudioPlayer.OnErrorListener,
-    AudioPlayer.OnMetadataListener, AudioPlayer.OnBaseInfoListener, AudioPlayer.OnGetPicListener{
+    AudioPlayer.OnMetadataListener, AudioPlayer.OnBaseInfoListener, AudioPlayer.OnGetPicListener, AudioPlayer.OnBufferUpdateListener{
 
     private AudioPlayer player = null;
     private ImageView imageView;
@@ -51,6 +51,7 @@ public class MainActivity extends AppCompatActivity implements AudioPlayer.OnPre
         player.setMetadataListener(this);
         player.setBaseInfoListener(this);
         player.setGetPicListener(this, this.getCacheDir().toString());
+        player.setBufferUpdateListener(this);
     }
 
     public void audio_prepared(View view) {
@@ -95,5 +96,10 @@ public class MainActivity extends AppCompatActivity implements AudioPlayer.OnPre
         msg.what = 1;
         msg.obj = pic_path;
         mHandler.sendMessage(msg);
+    }
+
+    @Override
+    public void onBufferUpdate(String update) {
+        CNTrace.d(update);
     }
 }

@@ -69,6 +69,27 @@ Java_cn_cnr_player_CNAudioPlayer_set_1onprepared_1listener(JNIEnv *env, jobject 
     gAudioPlayer->setOnPreparedListener(j, env->NewGlobalRef(listener));
 }
 
+extern "C"
+JNIEXPORT void JNICALL
+Java_cn_cnr_player_CNAudioPlayer_set_1onbufferupdate_1listener(JNIEnv *env, jobject instance, jobject listener) {
+    jclass  jlz = env->GetObjectClass(listener);
+    if(!jlz){
+        LOGD("get onbufferupdate listener class fail !");
+        gAudioPlayer->onError("get on buffer update listener error !", -1);
+        return;
+    }
+
+    jmethodID j = env->GetMethodID(jlz, "onBufferUpdate", "(Ljava/lang/String;)V");
+    if(!j){
+        LOGD("get onBufferUpdate listener method fail !");
+        gAudioPlayer->onError("get onPrepared listener method fail !", -1);
+        return;
+    }
+
+    gAudioPlayer->setOnBufferUpdateListener(j, env->NewGlobalRef(listener));
+}
+
+
 /*set onError listener, this listener will call java level listener, return error information*/
 extern "C"
 JNIEXPORT void JNICALL

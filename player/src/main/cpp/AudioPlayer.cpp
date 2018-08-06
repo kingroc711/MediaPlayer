@@ -53,7 +53,24 @@ AudioPlayer::~AudioPlayer() {
     if(this->jmidBaseInfo)
         env->DeleteGlobalRef(this->objBaseInfo);
 
+    if(this->jmidBufferUpdate)
+        env->DeleteGlobalRef(this->objBufferUpdate);
+
     this->g_javaVM->DetachCurrentThread();
+}
+
+int AudioPlayer::getStatus() {
+    return this->playStatus;
+}
+
+void AudioPlayer::setStatus(AudioPlayer::Status status) {
+    this->playStatus = status;
+}
+
+void AudioPlayer::setOnBufferUpdateListener(jmethodID listener, jobject obj) {
+    LOGD("jni set on buffer update listener. \n");
+    this->jmidBufferUpdate = listener;
+    this->objBufferUpdate = obj;
 }
 
 void AudioPlayer::setGetPicListener(jmethodID listener, jobject obj, const char* path) {
@@ -89,6 +106,17 @@ void AudioPlayer::setMetaDataListener(jmethodID listener, jobject obj) {
     LOGD("jni set metaData listener.\n");
     this->jmidMetadata = listener;
     this->objMetaData = obj;
+}
+
+void AudioPlayer::onBufferUpdate(const char *s) {
+    if(this->jmidBufferUpdate){
+        JNIEnv *env;
+        this->g_javaVM->AttachCurrentThread(&env, NULL);
+        jstring ss = env->NewStringUTF(s);
+        env->CallObjectMethod(this->objBufferUpdate, this->jmidBufferUpdate, ss);
+        env->DeleteLocalRef(ss);
+        this->g_javaVM->DetachCurrentThread();
+    }
 }
 
 void AudioPlayer::onGetPic(const char* path) {
@@ -179,7 +207,7 @@ void AudioPlayer::prepared_fun() {
 
     /*get meta data sent java*/
     AVDictionaryEntry *m = NULL;
-    while(m = av_dict_get(pFormatCtx->metadata,"",m,AV_DICT_IGNORE_SUFFIX)) {
+    while(m = av_dict_get(pFormatCtx->metadata, "" , m, AV_DICT_IGNORE_SUFFIX)) {
         this->onGetMetaData(m->key, m->value);
     }
 
@@ -187,7 +215,7 @@ void AudioPlayer::prepared_fun() {
     for(int i = 0; i < this->pFormatCtx->nb_streams; i++) {
         if(this->pFormatCtx->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_AUDIO){
             LOGI("AVFormatContext nb streams : %d code_type \n", i);
-            this->streamIndex = i;
+            this->timeBase = av_q2d(this->pFormatCtx->streams[i]->time_base);
             this->avCodecParameters = pFormatCtx->streams[i]->codecpar;
             this->avCodec = avcodec_find_decoder(this->avCodecParameters->codec_id);
             if(!this->avCodec){
@@ -222,8 +250,8 @@ void AudioPlayer::prepared_fun() {
 
     /*get audio base info sent java*/
     char buf[512];
-    int duration  = ( this->pFormatCtx->duration)/1000000;
-    sprintf(buf, "%d",duration);
+    double duration  = this->pFormatCtx->duration * av_q2d(AV_TIME_BASE_Q);
+    sprintf(buf, "%f",duration);
     this->onBaseInfo("duration", buf);
     this->onBaseInfo("format", this->pFormatCtx->iformat->name);
 
@@ -257,18 +285,23 @@ void AudioPlayer::prepared_fun() {
     this->setStatus(AUDIO_PREPARED);
     this->onPrepared("");
 
+    double bufferSecond = 0;
     while (this->getStatus() != AUDIO_STOP){
         AVPacket *avPacket = av_packet_alloc();
         int ret = av_read_frame(this->pFormatCtx, avPacket);
-        //LOGD("pts : %lld, dts : %lld, duration : %lld\n", avPacket->pts, avPacket->dts, avPacket->duration);
+        //LOGD("pts : %f, dts : %f, duration : %f\n", avPacket->pts * this->timeBase, avPacket->dts, avPacket->duration);
         if(ret == 0){
-            if(avPacket->stream_index == this->streamIndex){
-                audioQueue->putAvpacket(avPacket);
-            }else{
-                av_packet_free(&avPacket);
-                av_free(avPacket);
+            audioQueue->putAvpacket(avPacket);
+            if(avPacket->pts * this->timeBase - bufferSecond > 1){
+                bufferSecond = avPacket->pts * this->timeBase;
+                char b[128];
+                sprintf(b, "%f", bufferSecond);
+                this->onBufferUpdate(b);
             }
         }else{
+            av_packet_free(&avPacket);
+            av_free(avPacket);
+
             LOGD("av read frame ret : %d\n", ret);
             break;
         }
@@ -284,12 +317,4 @@ void AudioPlayer::prepared_fun() {
 //    }
 
     return;
-}
-
-int AudioPlayer::getStatus() {
-   return this->playStatus;
-}
-
-void AudioPlayer::setStatus(AudioPlayer::Status status) {
-    this->playStatus = status;
 }
