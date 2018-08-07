@@ -286,14 +286,16 @@ void AudioPlayer::prepared_fun() {
     this->onPrepared("");
 
     double bufferSecond = 0;
+    double lastBufferSecond = 0;
     while (this->getStatus() != AUDIO_STOP){
         AVPacket *avPacket = av_packet_alloc();
         int ret = av_read_frame(this->pFormatCtx, avPacket);
         //LOGD("pts : %f, dts : %f, duration : %f\n", avPacket->pts * this->timeBase, avPacket->dts, avPacket->duration);
         if(ret == 0){
             audioQueue->putAvpacket(avPacket);
-            if(avPacket->pts * this->timeBase - bufferSecond > 1){
-                bufferSecond = avPacket->pts * this->timeBase;
+            lastBufferSecond = avPacket->pts * this->timeBase;
+            if(lastBufferSecond - bufferSecond > 1){
+                bufferSecond = lastBufferSecond;
                 char b[128];
                 sprintf(b, "%f", bufferSecond);
                 this->onBufferUpdate(b);
@@ -307,14 +309,13 @@ void AudioPlayer::prepared_fun() {
         }
     }
 
+    if(lastBufferSecond > bufferSecond){
+        char b[128];
+        sprintf(b, "%f", lastBufferSecond);
+        this->onBufferUpdate(b);
+    }
+
     LOGD("get data finish thread exit !\n");
-
-//    AVPacket* avPacket;
-//    while (this->audioQueue->getAvpacket(&avPacket) ==0){
-//        LOGD("pts : %lld, dts : %lld, duration : %lld\n", avPacket->pts, avPacket->dts, avPacket->duration);
-//        av_packet_free(&avPacket);
-//        av_free(avPacket);
-//    }
-
+    LOGD("Package size : %d, total size : %d\n", this->audioQueue->size(), this->audioQueue->getDataSize());
     return;
 }

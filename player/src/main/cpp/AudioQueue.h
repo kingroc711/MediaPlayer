@@ -29,6 +29,8 @@ public:
 
     void putAvpacket(AVPacket* packet);
     int getAvpacket(AVPacket** packet);
+    int size();
+    unsigned int getDataSize();
 };
 
 

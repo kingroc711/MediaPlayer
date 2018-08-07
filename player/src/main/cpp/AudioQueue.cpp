@@ -45,3 +45,11 @@ int AudioQueue::getAvpacket(AVPacket **packet) {
             return -1;
         }
 }
+
+int AudioQueue::size() {
+    return this->queuePacket.size();
+}
+
+unsigned int AudioQueue::getDataSize() {
+    return this->dataSize;
+}
