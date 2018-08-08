@@ -224,6 +224,7 @@ void AudioPlayer::prepared_fun() {
     for(int i = 0; i < this->pFormatCtx->nb_streams; i++) {
         if(this->pFormatCtx->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_AUDIO){
             LOGI("AVFormatContext nb streams : %d code_type \n", i);
+            this->streamIndex = i;
             this->timeBase = av_q2d(this->pFormatCtx->streams[i]->time_base);
             this->avCodecParameters = pFormatCtx->streams[i]->codecpar;
             this->avCodec = avcodec_find_decoder(this->avCodecParameters->codec_id);
@@ -259,8 +260,8 @@ void AudioPlayer::prepared_fun() {
 
     /*get audio base info sent java*/
     char buf[512];
-    double duration  = this->pFormatCtx->duration * av_q2d(AV_TIME_BASE_Q);
-    sprintf(buf, "%f",duration);
+    double audioDuration  = this->pFormatCtx->duration * av_q2d(AV_TIME_BASE_Q);
+    sprintf(buf, "%f", audioDuration);
     this->onBaseInfo("duration", buf);
     this->onBaseInfo("format", this->pFormatCtx->iformat->name);
 
@@ -301,13 +302,15 @@ void AudioPlayer::prepared_fun() {
         int ret = av_read_frame(this->pFormatCtx, avPacket);
         //LOGD("pts : %f, dts : %f, duration : %f\n", avPacket->pts * this->timeBase, avPacket->dts, avPacket->duration);
         if(ret == 0){
-            audioQueue->putAvpacket(avPacket);
-            lastBufferSecond = avPacket->pts * this->timeBase;
-            if(lastBufferSecond - bufferSecond > 1){
-                bufferSecond = lastBufferSecond;
-                char b[128];
-                sprintf(b, "%f", bufferSecond);
-                this->onBufferUpdate(b);
+            if(avPacket->stream_index == this->streamIndex) {
+                audioQueue->putAvpacket(avPacket);
+                lastBufferSecond = avPacket->pts * this->timeBase;
+                if (lastBufferSecond - bufferSecond > audioDuration/20) {
+                    bufferSecond = lastBufferSecond;
+                    char b[128];
+                    sprintf(b, "%f", bufferSecond);
+                    this->onBufferUpdate(b);
+                }
             }
         }else{
             av_packet_free(&avPacket);

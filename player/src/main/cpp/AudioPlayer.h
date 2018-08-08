@@ -36,6 +36,8 @@ private:
     Status playStatus;
     double timeBase;
 
+    int streamIndex;
+
     JavaVM *g_javaVM = NULL;
     jmethodID jmidOnparpared;
     jmethodID jmidOnError = NULL;
