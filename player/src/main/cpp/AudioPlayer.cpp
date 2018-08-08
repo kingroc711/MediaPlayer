@@ -39,6 +39,15 @@ AudioPlayer::~AudioPlayer() {
 
     unlink(this->picPath);
 
+    if(this->avCodecContext){
+        avcodec_close(this->avCodecContext);
+        av_free(this->avCodecContext);
+    }
+
+    if(this->pFormatCtx){
+        avformat_close_input(&this->pFormatCtx);
+    }
+
     JNIEnv *env;
     this->g_javaVM->AttachCurrentThread(&env, NULL);
     if(this->jmidMetadata)
