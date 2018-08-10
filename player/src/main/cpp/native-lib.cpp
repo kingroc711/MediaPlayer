@@ -181,3 +181,9 @@ Java_cn_cnr_player_CNAudioPlayer_get_1status(JNIEnv *env, jobject instance) {
     return gAudioPlayer->getStatus();
 
 }
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_cn_cnr_player_CNAudioPlayer_start__II(JNIEnv *env, jobject instance, jint sampleRate, jint bufSize) {
+    gAudioPlayer->start(sampleRate, bufSize);
+}

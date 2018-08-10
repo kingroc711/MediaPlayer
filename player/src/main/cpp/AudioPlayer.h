@@ -10,13 +10,12 @@
 #include <jni.h>
 #include <pthread.h>
 #include "AudioQueue.h"
+#include "OpenSLPlayer.h"
 
 extern "C"
 {
 #include "libavformat/avformat.h"
 };
-
-using  std::string;
 
 class AudioPlayer {
 
@@ -58,14 +57,15 @@ private:
     AVCodecContext *avCodecContext = NULL;
     AVCodecParameters *avCodecParameters = NULL;
 
-    AudioQueue *audioQueue;
+    AudioQueue* audioQueue;
+    OpenSLPlayer* openSLPlayer;
 
 public:
     pthread_t thread_t;
     AudioPlayer(JavaVM *g_javaVM);
     ~AudioPlayer();
 
-    void start();
+    void start(int sampleRate, int bufSize);
     void setOnPreparedListener(jmethodID listener, jobject obj);
     void setOnErrorListener(jmethodID listener, jobject obj);
     void setMetaDataListener(jmethodID listener, jobject obj);

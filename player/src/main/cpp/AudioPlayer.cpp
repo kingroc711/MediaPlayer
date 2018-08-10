@@ -1,11 +1,7 @@
 #include <unistd.h>
 #include "AudioPlayer.h"
 #include "AndroidLog.h"
-
-
-void AudioPlayer::start() {
-
-}
+#include "OpenSLPlayer.h"
 
 static void* toPrepared(void* data){
     AudioPlayer *player = (AudioPlayer*)data;
@@ -330,4 +326,16 @@ void AudioPlayer::prepared_fun() {
     LOGD("get data finish thread exit !\n");
     LOGD("Package size : %d, total size : %d\n", this->audioQueue->size(), this->audioQueue->getDataSize());
     return;
+}
+
+void AudioPlayer::start(int sampleRate, int bufSize) {
+
+    this->openSLPlayer = new OpenSLPlayer();
+    SLresult result = this->openSLPlayer->createEngine();
+    if(result != SL_RESULT_SUCCESS){
+        this->onError("create player error.", result);
+        return;
+    }
+
+    result = this->openSLPlayer->createBufferQueue(sampleRate, bufSize);
 }
