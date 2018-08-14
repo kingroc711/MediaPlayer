@@ -10,11 +10,13 @@
 #include <jni.h>
 #include <pthread.h>
 #include "AudioQueue.h"
-#include "OpenSLPlayer.h"
 
 extern "C"
 {
+#include "libswresample/swresample.h"
 #include "libavformat/avformat.h"
+#include <SLES/OpenSLES.h>
+#include <SLES/OpenSLES_Android.h>
 };
 
 class AudioPlayer {
@@ -58,7 +60,26 @@ private:
     AVCodecParameters *avCodecParameters = NULL;
 
     AudioQueue* audioQueue;
-    OpenSLPlayer* openSLPlayer;
+
+    /*PCM*/
+    SLObjectItf engineObject = NULL;
+    SLEngineItf engineEngine;
+    SLObjectItf outputMixObject = NULL;
+    SLEnvironmentalReverbItf outputMixEnvironmentalReverb = NULL;
+    // aux effect on the output mix, used by the buffer queue player
+    SLEnvironmentalReverbSettings reverbSettings = SL_I3DL2_ENVIRONMENT_PRESET_STONECORRIDOR;
+    SLmilliHertz bqPlayerSampleRate = 0;
+    jint   bqPlayerBufSize = 0;
+    SLObjectItf bqPlayerObject = NULL;
+    SLPlayItf bqPlayerPlay;
+    SLAndroidSimpleBufferQueueItf bqPlayerBufferQueue;
+    SLEffectSendItf bqPlayerEffectSend;
+    SLVolumeItf bqPlayerVolume;
+
+    SwrContext *swr_ctx;
+    void initSWR();
+    uint8_t *outputBuffer;
+    int nextSize;
 
 public:
     pthread_t thread_t;
@@ -87,6 +108,11 @@ public:
 
     void setStatus(Status status);
     int getStatus();
+
+    /*PCM*/
+    SLresult createEngine();
+    SLresult createBufferQueue(int sampleRate, int bufSize);
+    void bqPlayerCallback(SLAndroidSimpleBufferQueueItf bq, void *context);
 };
 
 

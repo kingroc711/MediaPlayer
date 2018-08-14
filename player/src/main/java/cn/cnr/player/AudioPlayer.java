@@ -1,7 +1,9 @@
 package cn.cnr.player;
 
+import android.content.Context;
+
 public interface AudioPlayer {
-    void start();
+    void start(Context context);
     void stop();
     void setPrepared();
     void release();

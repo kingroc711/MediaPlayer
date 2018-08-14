@@ -59,7 +59,7 @@ public class MainActivity extends AppCompatActivity implements AudioPlayer.OnPre
     }
 
     public void audio_start(View view) {
-        player.start();
+        player.start(this);
     }
 
     public void audio_setsource(View view) {

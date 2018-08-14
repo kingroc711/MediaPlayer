@@ -1,9 +1,8 @@
 #include <unistd.h>
 #include "AudioPlayer.h"
 #include "AndroidLog.h"
-#include "OpenSLPlayer.h"
 
-static void* toPrepared(void* data){
+void* toPrepared(void* data){
     AudioPlayer *player = (AudioPlayer*)data;
     player->prepared_fun();
     pthread_detach(pthread_self());
@@ -163,11 +162,21 @@ void AudioPlayer::onPrepared(const char *s) {
 void AudioPlayer::onError(const char* s, int errorCode) {
     if(this->jmidOnError){
         JNIEnv *env;
-        this->g_javaVM->AttachCurrentThread(&env, NULL);
+        int getEnvStat = this->g_javaVM->GetEnv((void **)&env, JNI_VERSION_1_4);
+        LOGD("get Evn Stat : %d\n", getEnvStat);
+
+        if(getEnvStat == JNI_EDETACHED){
+            this->g_javaVM->AttachCurrentThread(&env, NULL);
+        }
+
         jstring str_arg = env->NewStringUTF(s);
-        env->CallObjectMethod(this->objOnError, this->jmidOnError, str_arg, errorCode);
+        //env->CallObjectMethod(this->objOnError, this->jmidOnError, str_arg, errorCode);
+        env->CallVoidMethod(this->objOnError, this->jmidOnError, str_arg, errorCode);
         env->DeleteLocalRef(str_arg);
-        this->g_javaVM->DetachCurrentThread();
+
+        if(getEnvStat == JNI_EDETACHED) {
+            this->g_javaVM->DetachCurrentThread();
+        }
     }
 }
 
@@ -291,6 +300,8 @@ void AudioPlayer::prepared_fun() {
     this->setStatus(AUDIO_PREPARED);
     this->onPrepared("");
 
+    LOGE("aaa : %d, bbb : %d, ", this->avCodecContext->sample_fmt, AV_SAMPLE_FMT_S16P);
+
     double bufferSecond = 0;
     double lastBufferSecond = 0;
     while (this->getStatus() != AUDIO_STOP){
@@ -309,10 +320,9 @@ void AudioPlayer::prepared_fun() {
                 }
             }
         }else{
-            av_packet_free(&avPacket);
+            av_packet_unref(avPacket);
             av_free(avPacket);
-
-            LOGD("av read frame ret : %d\n", ret);
+            //LOGD("av read frame ret : %d\n", ret);
             break;
         }
     }
@@ -330,12 +340,261 @@ void AudioPlayer::prepared_fun() {
 
 void AudioPlayer::start(int sampleRate, int bufSize) {
 
-    this->openSLPlayer = new OpenSLPlayer();
-    SLresult result = this->openSLPlayer->createEngine();
+    SLresult result = this->createEngine();
     if(result != SL_RESULT_SUCCESS){
+        LOGE("create player error %d.", result);
         this->onError("create player error.", result);
         return;
     }
+    LOGD("create player engine OK");
 
-    result = this->openSLPlayer->createBufferQueue(sampleRate, bufSize);
+    result = this->createBufferQueue(sampleRate, bufSize);
+    if(result != SL_RESULT_SUCCESS){
+        LOGE("create buffer queue error %d\n", result);
+        this->onError("\"create buffer queue error", result);
+        return;
+    }
+    LOGD("create buffer queue OK");
+    this->initSWR();
+
+    bqPlayerCallback(this->bqPlayerBufferQueue, this);
+}
+
+SLresult AudioPlayer::createEngine() {
+    SLresult result;
+
+    // create engine
+    result = slCreateEngine(&engineObject, 0, NULL, 0, NULL, NULL);
+    if(result != SL_RESULT_SUCCESS) {
+        LOGD("create engine result : %d\n", result);
+        return result;
+    }
+
+    // realize the engine
+    result = (*engineObject)->Realize(engineObject, SL_BOOLEAN_FALSE);
+    if(result != SL_RESULT_SUCCESS) {
+        LOGD("realize engine result : %d\n", result);
+        return result;
+    }
+
+    // get the engine interface, which is needed in order to create other objects
+    result = (*engineObject)->GetInterface(engineObject, SL_IID_ENGINE, &engineEngine);
+    if(result != SL_RESULT_SUCCESS) {
+        LOGD("interface engine result : %d\n", result);
+        return result;
+    }
+
+    // create output mix, with environmental reverb specified as a non-required interface
+    const SLInterfaceID ids[1] = {SL_IID_ENVIRONMENTALREVERB};
+    const SLboolean req[1] = {SL_BOOLEAN_FALSE};
+    result = (*engineEngine)->CreateOutputMix(engineEngine, &outputMixObject, 1, ids, req);
+    if(result != SL_RESULT_SUCCESS) {
+        LOGD("create output mix result : %d\n", result);
+        return result;
+    }
+
+    // realize the output mix
+    result = (*outputMixObject)->Realize(outputMixObject, SL_BOOLEAN_FALSE);
+    if(result != SL_RESULT_SUCCESS) {
+        LOGD("realize outputmixobject result : %d\n", result);
+        return result;
+    }
+
+    // get the environmental reverb interface
+    // this could fail if the environmental reverb effect is not available,
+    // either because the feature is not present, excessive CPU load, or
+    // the required MODIFY_AUDIO_SETTINGS permission was not requested and granted
+    result = (*outputMixObject)->GetInterface(outputMixObject, SL_IID_ENVIRONMENTALREVERB, &outputMixEnvironmentalReverb);
+    LOGD("get interface outputmixobject result : %d\n", result);
+    if (SL_RESULT_SUCCESS == result) {
+        //result =
+        (*outputMixEnvironmentalReverb)->SetEnvironmentalReverbProperties(outputMixEnvironmentalReverb, &reverbSettings);
+        LOGD("SetEnvironmentalReverbProperties result : %d\n", result);
+        return SL_RESULT_SUCCESS;
+    }
+    // ignore unsuccessful result codes for environmental reverb, as it is optional for this example
+
+
+    return !SL_RESULT_SUCCESS;
+}
+
+void funbqPlayerCallback(SLAndroidSimpleBufferQueueItf bq, void *context){
+    AudioPlayer *p = (AudioPlayer*)context;
+    p->bqPlayerCallback(bq, context);
+}
+
+SLresult AudioPlayer::createBufferQueue(int sampleRate, int bufSize) {
+    SLresult result;
+
+    this->outputBuffer = (uint8_t*)malloc(8192*sizeof(uint8_t));
+
+    LOGD("sampleRate : %d, bufSize : %d\n", sampleRate, bufSize);
+    if (sampleRate >= 0 && bufSize >= 0 ) {
+        this->bqPlayerSampleRate = sampleRate * 1000;
+        /*
+         * device native buffer size is another factor to minimize audio latency, not used in this
+         * sample: we only play one giant buffer here
+         */
+        this->bqPlayerBufSize = bufSize;
+    }
+
+    // configure audio source
+    SLDataLocator_AndroidSimpleBufferQueue loc_bufq = {SL_DATALOCATOR_ANDROIDSIMPLEBUFFERQUEUE, 2};
+    SLDataFormat_PCM format_pcm = {SL_DATAFORMAT_PCM,
+                                   2,
+                                   this->avCodecContext->sample_rate,
+                                   SL_PCMSAMPLEFORMAT_FIXED_16, SL_PCMSAMPLEFORMAT_FIXED_16,
+                                   SL_SPEAKER_FRONT_LEFT | SL_SPEAKER_FRONT_RIGHT,
+                                   SL_BYTEORDER_LITTLEENDIAN};
+
+    /*
+     * Enable Fast Audio when possible:  once we set the same rate to be the native, fast audio path
+     * will be triggered
+     */
+    if(this->bqPlayerSampleRate) {
+        format_pcm.samplesPerSec = this->bqPlayerSampleRate;       //sample rate in mili second
+    }
+
+
+    SLDataSource audioSrc = {&loc_bufq, &format_pcm};
+
+    // configure audio sink
+    SLDataLocator_OutputMix loc_outmix = {SL_DATALOCATOR_OUTPUTMIX, this->outputMixObject};
+    SLDataSink audioSnk = {&loc_outmix, NULL};
+
+    /*
+    * create audio player:
+    *     fast audio does not support when SL_IID_EFFECTSEND is required, skip it
+    *     for fast audio case
+    */
+    const SLInterfaceID ids[3] = {SL_IID_BUFFERQUEUE, SL_IID_VOLUME, SL_IID_EFFECTSEND, /*SL_IID_MUTESOLO,*/};
+    const SLboolean req[3] = {SL_BOOLEAN_TRUE, SL_BOOLEAN_TRUE, SL_BOOLEAN_TRUE, /*SL_BOOLEAN_TRUE,*/ };
+
+    result = (*this->engineEngine)->CreateAudioPlayer(this->engineEngine, &this->bqPlayerObject, &audioSrc, &audioSnk,
+                                                      this->bqPlayerSampleRate? 2 : 3, ids, req);
+    if(SL_RESULT_SUCCESS != result){
+        LOGE("create audio player error !");
+        return result;
+    }
+
+    // realize the player
+    result = (*this->bqPlayerObject)->Realize(this->bqPlayerObject, SL_BOOLEAN_FALSE);
+    if(result != SL_RESULT_SUCCESS){
+        LOGE("player realize error !");
+        return result;
+    }
+
+    // get the play interface
+    result = (*this->bqPlayerObject)->GetInterface(this->bqPlayerObject, SL_IID_PLAY, &this->bqPlayerPlay);
+    if(SL_RESULT_SUCCESS != result){
+        LOGE("player get interface");
+        return  result;
+    }
+
+    // get the buffer queue interface
+    result = (*this->bqPlayerObject)->GetInterface(this->bqPlayerObject, SL_IID_BUFFERQUEUE, &this->bqPlayerBufferQueue);
+    if(SL_RESULT_SUCCESS != result){
+        LOGE("get player buffer Queue");
+        return result;
+    }
+
+    // register callback on the buffer queue
+    result = (*this->bqPlayerBufferQueue)->RegisterCallback(this->bqPlayerBufferQueue, funbqPlayerCallback, this);
+    if(SL_RESULT_SUCCESS != result){
+        LOGE("register callback error!");
+        return result;
+    }
+
+    // get the effect send interface
+    this->bqPlayerEffectSend = NULL;
+    if( 0 == this->bqPlayerSampleRate) {
+        result = (*this->bqPlayerObject)->GetInterface(this->bqPlayerObject, SL_IID_EFFECTSEND, &this->bqPlayerEffectSend);
+        if(SL_RESULT_SUCCESS != result){
+            LOGE("get player object interfacer error !");
+            return result;
+        }
+    }
+
+#if 0   // mute/solo is not supported for sources that are known to be mono, as this is
+    // get the mute/solo interface
+    result = (*bqPlayerObject)->GetInterface(bqPlayerObject, SL_IID_MUTESOLO, &bqPlayerMuteSolo);
+    assert(SL_RESULT_SUCCESS == result);
+    (void)result;
+#endif
+
+    // get the volume interface
+    result = (*this->bqPlayerObject)->GetInterface(this->bqPlayerObject, SL_IID_VOLUME, &bqPlayerVolume);
+    if(SL_RESULT_SUCCESS != result){
+        LOGE("player object get interface");
+        return result;
+    }
+
+    // set the player's state to playing
+    result = (*this->bqPlayerPlay)->SetPlayState(this->bqPlayerPlay, SL_PLAYSTATE_PLAYING);
+    if(SL_RESULT_SUCCESS != result){
+        LOGE("set the player's state to playing");
+        return result;
+    }
+
+    return SL_RESULT_SUCCESS;
+}
+
+void AudioPlayer::bqPlayerCallback(SLAndroidSimpleBufferQueueItf bq, void *context) {
+    LOGE("bqPlayerCallback\n");
+
+    AVPacket *avPacket = NULL;
+    while(!this->audioQueue->getAvpacket(&avPacket)){
+        int ret = avcodec_send_packet(this->avCodecContext, avPacket);
+        if (ret != 0){
+            LOGE("avcode send packet error ret : %d\n", ret);
+            this->onError("avcode send packet error ret : %d", ret);
+            break;
+        }
+
+        double timestamp = avPacket->pts * this->timeBase;
+        LOGD("timestamp : %f", timestamp);
+
+        AVFrame *frame = av_frame_alloc();
+        ret = avcodec_receive_frame(this->avCodecContext, frame);
+        if(ret != 0){
+            LOGE("avcode receive frame error ret %d", ret);
+            this->onError("avcode receive frame error ret %d", ret);
+            av_frame_unref(frame);
+            break;
+        }
+
+        this->nextSize = av_samples_get_buffer_size(frame->linesize, this->avCodecContext->channels,
+                                              this->avCodecContext->frame_size, this->avCodecContext->sample_fmt, 1);
+        LOGD("nextSize : %d", this->nextSize);
+        ret = swr_convert(this->swr_ctx, &this->outputBuffer, frame->nb_samples,
+                          (const uint8_t **) frame->data, frame->nb_samples);
+        (*this->bqPlayerBufferQueue)->Enqueue(this->bqPlayerBufferQueue, this->outputBuffer, this->nextSize);
+        LOGD("swr_convert ret : %d", ret);
+        av_frame_unref(frame);
+        av_free(frame);
+        break;
+    }
+    av_packet_unref(avPacket);
+    av_free(avPacket);
+
+}
+
+void AudioPlayer::initSWR() {
+    this->swr_ctx = swr_alloc_set_opts(
+            NULL,
+            this->avCodecContext->channel_layout,
+            AV_SAMPLE_FMT_S16,
+            this->avCodecContext->sample_rate,
+            this->avCodecContext->channel_layout,
+            this->avCodecContext->sample_fmt,
+            this->avCodecContext->sample_rate,
+            0, NULL);
+
+    if (!this->swr_ctx || swr_init(this->swr_ctx) < 0) {
+        LOGE("swr init error.");
+        swr_free(&this->swr_ctx);
+        return;
+    }
+
+    swr_init(this->swr_ctx);
 }
