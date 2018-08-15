@@ -60,6 +60,9 @@ AudioPlayer::~AudioPlayer() {
     if(this->jmidBufferUpdate)
         env->DeleteGlobalRef(this->objBufferUpdate);
 
+    if(this->jmidPlayProgressing)
+        env->DeleteGlobalRef(this->objPlayProgressing);
+
     this->g_javaVM->DetachCurrentThread();
 }
 
@@ -93,6 +96,11 @@ void AudioPlayer::setBaseInfoListener(jmethodID listener, jobject obj) {
     this->objBaseInfo = obj;
 }
 
+void AudioPlayer::setOnPlayProgressing(jmethodID listener, jobject obj) {
+    LOGD("jni set on play progressing listener.\n");
+    this->jmidPlayProgressing = listener;
+    this->objPlayProgressing = obj;
+}
 
 void AudioPlayer::setOnErrorListener(jmethodID listener, jobject obj) {
     LOGD("jni set on error listener.\n");
@@ -115,55 +123,92 @@ void AudioPlayer::setMetaDataListener(jmethodID listener, jobject obj) {
 void AudioPlayer::onBufferUpdate(const char *s) {
     if(this->jmidBufferUpdate){
         JNIEnv *env;
-        this->g_javaVM->AttachCurrentThread(&env, NULL);
+        int getEnvStat = this->g_javaVM->GetEnv((void **)&env, JNI_VERSION_1_4);
+        if(getEnvStat == JNI_EDETACHED)
+            this->g_javaVM->AttachCurrentThread(&env, NULL);
+
         jstring ss = env->NewStringUTF(s);
-        env->CallObjectMethod(this->objBufferUpdate, this->jmidBufferUpdate, ss);
+        env->CallVoidMethod(this->objBufferUpdate, this->jmidBufferUpdate, ss);
         env->DeleteLocalRef(ss);
-        this->g_javaVM->DetachCurrentThread();
+
+        if(getEnvStat == JNI_EDETACHED)
+            this->g_javaVM->DetachCurrentThread();
     }
 }
 
 void AudioPlayer::onGetPic(const char* path) {
     if(this->jmidGetPic){
         JNIEnv *env;
-        this->g_javaVM->AttachCurrentThread(&env, NULL);
+        int getEnvStat = this->g_javaVM->GetEnv((void **)&env, JNI_VERSION_1_4);
+        if(getEnvStat == JNI_EDETACHED)
+            this->g_javaVM->AttachCurrentThread(&env, NULL);
+
         jstring s = env->NewStringUTF(path);
-        env->CallObjectMethod(this->objGetPic, this->jmidGetPic, s);
+        env->CallVoidMethod(this->objGetPic, this->jmidGetPic, s);
         env->DeleteLocalRef(s);
-        this->g_javaVM->DetachCurrentThread();
+
+        if(getEnvStat == JNI_EDETACHED)
+            this->g_javaVM->DetachCurrentThread();
     }
 }
 
 void AudioPlayer::onBaseInfo(const char* key, const char* value){
     if(this->jmidBaseInfo){
         JNIEnv *env;
-        this->g_javaVM->AttachCurrentThread(&env, NULL);
+        int getEnvStat = this->g_javaVM->GetEnv((void **)&env, JNI_VERSION_1_4);
+        if(getEnvStat == JNI_EDETACHED)
+            this->g_javaVM->AttachCurrentThread(&env, NULL);
+
         jstring k = env->NewStringUTF(key);
         jstring v = env->NewStringUTF(value);
-        env->CallObjectMethod(this->objBaseInfo, this->jmidBaseInfo, k, v);
+        env->CallVoidMethod(this->objBaseInfo, this->jmidBaseInfo, k, v);
         env->DeleteLocalRef(k);
         env->DeleteLocalRef(v);
-        this->g_javaVM->DetachCurrentThread();
+
+        if(getEnvStat == JNI_EDETACHED)
+            this->g_javaVM->DetachCurrentThread();
     }
 }
 
 void AudioPlayer::onPrepared(const char *s) {
     if(this->jmidOnparpared){
         JNIEnv *env;
-        this->g_javaVM->AttachCurrentThread(&env, NULL);
+        int getEnvStat = this->g_javaVM->GetEnv((void **)&env, JNI_VERSION_1_4);
+        if(getEnvStat == JNI_EDETACHED)
+            this->g_javaVM->AttachCurrentThread(&env, NULL);
+
         jstring str_arg = env->NewStringUTF(s);
-        env->CallObjectMethod(this->objOnPrepared, this->jmidOnparpared, str_arg);
+        env->CallVoidMethod(this->objOnPrepared, this->jmidOnparpared, str_arg);
         env->DeleteLocalRef(str_arg);
-        this->g_javaVM->DetachCurrentThread();
+
+        if(getEnvStat == JNI_EDETACHED)
+            this->g_javaVM->DetachCurrentThread();
     }
 }
 
+void AudioPlayer::onPlayProgressing(const char *s) {
+    if(this->jmidPlayProgressing){
+        JNIEnv *env;
+        int getEnvStat = this->g_javaVM->GetEnv((void **)&env, JNI_VERSION_1_4);
+        //LOGD("get Evn Stat : %d\n", getEnvStat);
+
+        if(getEnvStat == JNI_EDETACHED)
+            this->g_javaVM->AttachCurrentThread(&env, NULL);
+
+        jstring str_arg = env->NewStringUTF(s);
+        env->CallVoidMethod(this->objPlayProgressing, this->jmidPlayProgressing, str_arg);
+        env->DeleteLocalRef(str_arg);
+
+        if(getEnvStat == JNI_EDETACHED)
+            this->g_javaVM->DetachCurrentThread();
+    }
+}
 
 void AudioPlayer::onError(const char* s, int errorCode) {
     if(this->jmidOnError){
         JNIEnv *env;
         int getEnvStat = this->g_javaVM->GetEnv((void **)&env, JNI_VERSION_1_4);
-        LOGD("get Evn Stat : %d\n", getEnvStat);
+        //LOGD("get Evn Stat : %d\n", getEnvStat);
 
         if(getEnvStat == JNI_EDETACHED){
             this->g_javaVM->AttachCurrentThread(&env, NULL);
@@ -183,13 +228,20 @@ void AudioPlayer::onError(const char* s, int errorCode) {
 void AudioPlayer::onGetMetaData(const char *key, const char *value) {
     if(this->jmidMetadata){
         JNIEnv *env;
-        this->g_javaVM->AttachCurrentThread(&env, NULL);
+        int getEnvStat = this->g_javaVM->GetEnv((void **)&env, JNI_VERSION_1_4);
+        LOGD("get Evn Stat : %d\n", getEnvStat);
+
+        if(getEnvStat == JNI_EDETACHED)
+            this->g_javaVM->AttachCurrentThread(&env, NULL);
+
         jstring k = env->NewStringUTF(key);
         jstring v = env->NewStringUTF(value);
-        env->CallObjectMethod(this->objMetaData, this->jmidMetadata, k, v);
+        env->CallVoidMethod(this->objMetaData, this->jmidMetadata, k, v);
         env->DeleteLocalRef(k);
         env->DeleteLocalRef(v);
-        this->g_javaVM->DetachCurrentThread();
+
+        if(getEnvStat == JNI_EDETACHED)
+            this->g_javaVM->DetachCurrentThread();
     }
 }
 
@@ -264,7 +316,7 @@ void AudioPlayer::prepared_fun() {
     }
 
     /*get audio base info sent java*/
-    char buf[512];
+    char buf[128];
     double audioDuration  = this->pFormatCtx->duration * av_q2d(AV_TIME_BASE_Q);
     sprintf(buf, "%f", audioDuration);
     this->onBaseInfo("duration", buf);
@@ -299,8 +351,6 @@ void AudioPlayer::prepared_fun() {
 
     this->setStatus(AUDIO_PREPARED);
     this->onPrepared("");
-
-    LOGE("aaa : %d, bbb : %d, ", this->avCodecContext->sample_fmt, AV_SAMPLE_FMT_S16P);
 
     double bufferSecond = 0;
     double lastBufferSecond = 0;
@@ -356,6 +406,8 @@ void AudioPlayer::start(int sampleRate, int bufSize) {
     }
     LOGD("create buffer queue OK");
     this->initSWR();
+
+    this->setStatus(AUDIO_PLAYING);
 
     bqPlayerCallback(this->bqPlayerBufferQueue, this);
 }
@@ -540,43 +592,40 @@ SLresult AudioPlayer::createBufferQueue(int sampleRate, int bufSize) {
 }
 
 void AudioPlayer::bqPlayerCallback(SLAndroidSimpleBufferQueueItf bq, void *context) {
-    LOGE("bqPlayerCallback\n");
 
     AVPacket *avPacket = NULL;
-    while(!this->audioQueue->getAvpacket(&avPacket)){
+    if(this->getStatus() == AUDIO_PLAYING && this->audioQueue->getAvpacket(&avPacket)){
         int ret = avcodec_send_packet(this->avCodecContext, avPacket);
         if (ret != 0){
             LOGE("avcode send packet error ret : %d\n", ret);
             this->onError("avcode send packet error ret : %d", ret);
-            break;
+            return;
         }
 
         double timestamp = avPacket->pts * this->timeBase;
-        LOGD("timestamp : %f", timestamp);
+        char buf[128];
+        sprintf(buf, "%f", timestamp);
+        this->onPlayProgressing(buf);
 
         AVFrame *frame = av_frame_alloc();
         ret = avcodec_receive_frame(this->avCodecContext, frame);
         if(ret != 0){
             LOGE("avcode receive frame error ret %d", ret);
             this->onError("avcode receive frame error ret %d", ret);
-            av_frame_unref(frame);
-            break;
+            av_frame_free(&frame);
+            av_packet_free(&avPacket);
+            return;
         }
 
         this->nextSize = av_samples_get_buffer_size(frame->linesize, this->avCodecContext->channels,
-                                              this->avCodecContext->frame_size, this->avCodecContext->sample_fmt, 1);
-        LOGD("nextSize : %d", this->nextSize);
+                                                    this->avCodecContext->frame_size, this->avCodecContext->sample_fmt, 1);
         ret = swr_convert(this->swr_ctx, &this->outputBuffer, frame->nb_samples,
                           (const uint8_t **) frame->data, frame->nb_samples);
         (*this->bqPlayerBufferQueue)->Enqueue(this->bqPlayerBufferQueue, this->outputBuffer, this->nextSize);
         LOGD("swr_convert ret : %d", ret);
-        av_frame_unref(frame);
-        av_free(frame);
-        break;
+        av_frame_free(&frame);
+        av_packet_free(&avPacket);
     }
-    av_packet_unref(avPacket);
-    av_free(avPacket);
-
 }
 
 void AudioPlayer::initSWR() {

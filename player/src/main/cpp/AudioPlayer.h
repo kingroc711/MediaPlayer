@@ -25,7 +25,7 @@ private:
     enum Status {
         AUDIO_CREATE = 0,
         AUDIO_PREPARED = 1,
-        AUDIO_START = 2,
+        AUDIO_PLAYING = 2,
         AUDIO_PAUSE = 3,
         AUDIO_STOP = 4
     };
@@ -46,6 +46,7 @@ private:
     jmethodID jmidBaseInfo = NULL;
     jmethodID jmidGetPic = NULL;
     jmethodID jmidBufferUpdate = NULL;
+    jmethodID jmidPlayProgressing = NULL;
 
     jobject objOnError = NULL;
     jobject objOnPrepared = NULL;
@@ -53,6 +54,7 @@ private:
     jobject objBaseInfo = NULL;
     jobject objGetPic = NULL;
     jobject objBufferUpdate = NULL;
+    jobject objPlayProgressing = NULL;
 
     AVFormatContext *pFormatCtx = NULL;
     AVCodec *avCodec = NULL;
@@ -93,6 +95,7 @@ public:
     void setBaseInfoListener(jmethodID listener, jobject obj);
     void setGetPicListener(jmethodID listener, jobject obj, const char* path);
     void setOnBufferUpdateListener(jmethodID listener, jobject obj);
+    void setOnPlayProgressing(jmethodID listener, jobject obj);
 
     void setPrepared();
     void setSource(const char* path);
@@ -103,6 +106,7 @@ public:
     void onBaseInfo(const char* key, const char* value);
     void onGetPic(const char* path);
     void onBufferUpdate(const char* s);
+    void onPlayProgressing(const char *s);
 
     void prepared_fun();
 

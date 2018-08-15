@@ -16,6 +16,7 @@ class CNAudioPlayer implements AudioPlayer {
     private native int get_status();
     private native void set_onbufferupdate_listener(OnBufferUpdateListener listener);
     private native void start(int sampleRate, int bufSize);
+    private native void set_onPlayProgressing_listener(onPlayProgressing listener);
 
     public CNAudioPlayer(){
         create_audio();
@@ -81,6 +82,11 @@ class CNAudioPlayer implements AudioPlayer {
     @Override
     public void setBufferUpdateListener(OnBufferUpdateListener listener) {
         set_onbufferupdate_listener(listener);
+    }
+
+    @Override
+    public void setPlayProgressing(onPlayProgressing listener) {
+        set_onPlayProgressing_listener(listener);
     }
 
     @Override

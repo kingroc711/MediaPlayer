@@ -32,18 +32,19 @@ void AudioQueue::putAvpacket(AVPacket *packet) {
 }
 
 int AudioQueue::getAvpacket(AVPacket **packet) {
-
-        pthread_mutex_lock(&this->mutexPacket);
-        if(this->queuePacket.size() > 0){
-            *packet = this->queuePacket.front();
-            this->dataSize = this->dataSize - (*packet)->size;
-            this->queuePacket.pop();
-            pthread_mutex_unlock(&this->mutexPacket);
-            return 0;
-        }else{
-            pthread_cond_wait(&this->condPacket, &this->mutexPacket);
-            return -1;
-        }
+    int size;
+    pthread_mutex_lock(&this->mutexPacket);
+    size = this->queuePacket.size();
+    if( size > 0){
+        *packet = this->queuePacket.front();
+        this->dataSize = this->dataSize - (*packet)->size;
+        this->queuePacket.pop();
+        pthread_mutex_unlock(&this->mutexPacket);
+        return size;
+    }else{
+        pthread_cond_wait(&this->condPacket, &this->mutexPacket);
+        return -1;
+    }
 }
 
 int AudioQueue::size() {
