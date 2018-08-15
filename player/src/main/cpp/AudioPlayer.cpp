@@ -15,9 +15,9 @@ void AudioPlayer::setPrepared() {
 
 void AudioPlayer::setSource(const char* path) {
     int len = strlen(path);
-    this->path = (char*)malloc(len + 1);
-    strcpy(this->path, path);
-    LOGD("set source path %s\n", this->path);
+    this->audio_path = (char*)malloc(len + 1);
+    strcpy(this->audio_path, path);
+    LOGD("set source path %s\n", this->audio_path);
 }
 
 AudioPlayer::AudioPlayer(JavaVM *g_javaVM) {
@@ -27,7 +27,8 @@ AudioPlayer::AudioPlayer(JavaVM *g_javaVM) {
 }
 
 AudioPlayer::~AudioPlayer() {
-    free (this->path);
+    free (this->audio_path);
+    this->audio_path = NULL;
     free (this->picPath);
 
     delete(this->audioQueue);
@@ -229,7 +230,7 @@ void AudioPlayer::onGetMetaData(const char *key, const char *value) {
     if(this->jmidMetadata){
         JNIEnv *env;
         int getEnvStat = this->g_javaVM->GetEnv((void **)&env, JNI_VERSION_1_4);
-        LOGD("get Evn Stat : %d\n", getEnvStat);
+        //LOGD("get Evn Stat : %d\n", getEnvStat);
 
         if(getEnvStat == JNI_EDETACHED)
             this->g_javaVM->AttachCurrentThread(&env, NULL);
@@ -257,16 +258,16 @@ void AudioPlayer::prepared_fun() {
         av_dict_set(&format_opts, "scan_all_pmts", "1", AV_DICT_DONT_OVERWRITE);
     }
 
-    if(avformat_open_input(&this->pFormatCtx, this->path, NULL, &format_opts))
+    if(avformat_open_input(&this->pFormatCtx, this->audio_path, NULL, &format_opts))
     {
-        LOGE("can not open url :%s", this->path);
+        LOGE("can not open url :%s", this->audio_path);
         this->onError("avformat can not open url.", -1);
         return;
     }
 
     if(avformat_find_stream_info(this->pFormatCtx, NULL) < 0)
     {
-        LOGE("can not find streams from %s", this->path);
+        LOGE("can not find streams from %s", this->audio_path);
         this->onError("can not find streams from url.\n", -1);
         return;
     }
@@ -302,7 +303,7 @@ void AudioPlayer::prepared_fun() {
             if (this->pFormatCtx->streams[i]->disposition & AV_DISPOSITION_ATTACHED_PIC) {
                 char buf[128];
                 sprintf(buf, "%s", this->picPath);
-                char* e = strrchr(this->path, '/');
+                char* e = strrchr(this->audio_path, '/');
                 strcat(buf, e);
                 LOGD("pic file name : %s\n", buf);
                 AVPacket pkt = this->pFormatCtx->streams[i]->attached_pic;
@@ -317,8 +318,9 @@ void AudioPlayer::prepared_fun() {
 
     /*get audio base info sent java*/
     char buf[128];
-    double audioDuration  = this->pFormatCtx->duration * av_q2d(AV_TIME_BASE_Q);
-    sprintf(buf, "%f", audioDuration);
+    this->audioDuration  = this->pFormatCtx->duration * av_q2d(AV_TIME_BASE_Q);
+    this->bufferUpdateDur = this->audioDuration/20 > 1 ? this->audioDuration/20 : 1;
+    sprintf(buf, "%f", this->audioDuration);
     this->onBaseInfo("duration", buf);
     this->onBaseInfo("format", this->pFormatCtx->iformat->name);
 
@@ -361,8 +363,8 @@ void AudioPlayer::prepared_fun() {
         if(ret == 0){
             if(avPacket->stream_index == this->streamIndex) {
                 audioQueue->putAvpacket(avPacket);
-                lastBufferSecond = avPacket->pts * this->timeBase;
-                if (lastBufferSecond - bufferSecond > audioDuration/20) {
+                lastBufferSecond = (avPacket->pts + avPacket->duration) * this->timeBase;
+                if (lastBufferSecond - bufferSecond > this->bufferUpdateDur) {
                     bufferSecond = lastBufferSecond;
                     char b[128];
                     sprintf(b, "%f", bufferSecond);
@@ -408,6 +410,7 @@ void AudioPlayer::start(int sampleRate, int bufSize) {
     this->initSWR();
 
     this->setStatus(AUDIO_PLAYING);
+    this->playTimeStamp = 0;
 
     bqPlayerCallback(this->bqPlayerBufferQueue, this);
 }
@@ -598,19 +601,27 @@ SLresult AudioPlayer::createBufferQueue(int sampleRate, int bufSize) {
 void AudioPlayer::bqPlayerCallback(SLAndroidSimpleBufferQueueItf bq, void *context) {
 
     AVPacket *avPacket = NULL;
-    if(this->getStatus() == AUDIO_PLAYING && this->audioQueue->getAvpacket(&avPacket)){
+    if(this->getStatus() == AUDIO_PLAYING && this->audioQueue->getAvpacket(&avPacket) > 0){
         int ret = avcodec_send_packet(this->avCodecContext, avPacket);
         if (ret != 0){
             LOGE("avcode send packet error ret : %d\n", ret);
+            char buf[128];
+            sprintf(buf, "%f", this->lastPlayTimeStamp);
+            this->onPlayProgressing(buf);
+
+            av_packet_free(&avPacket);
+
             this->onError("avcode send packet error ret : %d", ret);
             return;
         }
 
-        double timestamp = avPacket->pts * this->timeBase;
-        char buf[128];
-        sprintf(buf, "%f", timestamp);
-        this->onPlayProgressing(buf);
-
+        this->lastPlayTimeStamp = (avPacket->pts + avPacket->duration) * this->timeBase;
+        if(this->lastPlayTimeStamp - this->playTimeStamp  > this->bufferUpdateDur/4){
+            this->playTimeStamp = this->lastPlayTimeStamp;
+            char buf[128];
+            sprintf(buf, "%f", this->lastPlayTimeStamp);
+            this->onPlayProgressing(buf);
+        }
         AVFrame *frame = av_frame_alloc();
         ret = avcodec_receive_frame(this->avCodecContext, frame);
         if(ret != 0){
@@ -626,9 +637,13 @@ void AudioPlayer::bqPlayerCallback(SLAndroidSimpleBufferQueueItf bq, void *conte
         ret = swr_convert(this->swr_ctx, &this->outputBuffer, frame->nb_samples,
                           (const uint8_t **) frame->data, frame->nb_samples);
         (*this->bqPlayerBufferQueue)->Enqueue(this->bqPlayerBufferQueue, this->outputBuffer, this->nextSize);
-        LOGD("swr_convert ret : %d", ret);
+        //LOGD("swr_convert ret : %d", ret);
         av_frame_free(&frame);
         av_packet_free(&avPacket);
+    }else if(this->lastPlayTimeStamp - this->playTimeStamp > 0){
+        char buf[128];
+        sprintf(buf, "%f", this->lastPlayTimeStamp);
+        this->onPlayProgressing(buf);
     }
 }
 

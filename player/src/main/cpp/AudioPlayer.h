@@ -31,7 +31,7 @@ private:
     };
 
 private:
-    char* path;
+    char* audio_path = NULL;
     char* picPath;
 
     Status playStatus;
@@ -82,6 +82,11 @@ private:
     void initSWR();
     uint8_t *outputBuffer;
     int nextSize;
+
+    double audioDuration;
+    double bufferUpdateDur;
+    double playTimeStamp = 0;
+    double lastPlayTimeStamp;
 
 public:
     pthread_t thread_t;

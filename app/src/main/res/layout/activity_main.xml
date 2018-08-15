@@ -16,13 +16,14 @@
 
     <LinearLayout
         android:orientation="horizontal"
-        android:layout_width="wrap_content"
-        android:layout_height="match_parent">
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
         <Button
             android:id="@+id/b_setsource"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:onClick="audio_setsource"
+            android:layout_weight="1"
             android:text="setsource"
             />
 
@@ -31,6 +32,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:onClick="audio_prepared"
+            android:layout_weight="1"
             android:text="prepare"
             />
 
@@ -39,6 +41,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:onClick="audio_start"
+            android:layout_weight="1"
             android:text="start"
             />
 
@@ -46,16 +49,37 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:onClick="audio_stop"
+            android:layout_weight="1"
             android:text="stop"
             />
     </LinearLayout>
 
-    <ImageView
-        android:id="@+id/b_pic"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:onClick="audio_start"
-        android:text="here show pic"
+    <LinearLayout
+        android:orientation="horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+        <ImageView
+            android:id="@+id/b_pic"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:onClick="audio_start"
+            android:text="here show pic"
         />
+
+        <TextView
+            android:id="@+id/base_info"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="base info and meta data"/>
+    </LinearLayout>
+
+    <ProgressBar
+        android:max="100"
+        android:progress="0"
+        android:secondaryProgress="0"
+        android:id="@+id/progressBarHorizontal"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"/>
 
 </LinearLayout>

@@ -8,6 +8,8 @@ import android.os.Bundle;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
+import android.widget.TextView;
 
 import java.io.File;
 
@@ -23,14 +25,39 @@ AudioPlayer.onPlayProgressing{
     private AudioPlayer player = null;
     private ImageView imageView;
     private EditText editText;
+    private TextView  textView;
+    private ProgressBar progressBar;
+
+    private Float duration;
 
     Handler mHandler = new Handler(){
         @Override
         public void handleMessage(Message msg) {
             switch (msg.what) {
                 case 1:
-                    CNTrace.d("get pic path : " + msg.obj);
                     imageView.setImageURI(Uri.fromFile(new File((String)msg.obj)));
+                    break;
+
+                case 2:
+                    String s = textView.getText().toString();
+                    s = s + "\n" + msg.obj;
+                    textView.setText(s);
+                    break;
+
+                case 3: {
+                    float stp = Float.valueOf((String) msg.obj);
+                    int precent = (int) (stp / duration * 100);
+                    int get = progressBar.getSecondaryProgress();
+                    progressBar.incrementSecondaryProgressBy(precent - get);
+                }
+                    break;
+
+                case 4:{
+                    float stp = Float.valueOf((String) msg.obj);
+                    int precent = (int) (stp / duration * 100);
+                    int get = progressBar.getProgress();
+                    progressBar.incrementProgressBy(precent - get);
+                }
                     break;
 
                 default:
@@ -46,6 +73,8 @@ AudioPlayer.onPlayProgressing{
 
         imageView = (ImageView)findViewById(R.id.b_pic);
         editText = (EditText)findViewById(R.id.edit_text);
+        textView = (TextView)findViewById(R.id.base_info);
+        progressBar = (ProgressBar)findViewById(R.id.progressBarHorizontal);
 
         player = CNPlayer.getAudioPlayerInstance();
         CNTrace.d("player statue : " + player.getStatus());
@@ -83,17 +112,27 @@ AudioPlayer.onPlayProgressing{
 
     @Override
     public void onError(String s, int errorCode) {
-        CNTrace.d("error : " + s + ", errorCode : " + errorCode);
+        CNTrace.d(s + ", errorCode : " + errorCode);
     }
 
     @Override
     public void onMetaData(String key, String value) {
-        CNTrace.d("MetaData key : " + key + ", value : " + value);
+        Message msg = mHandler.obtainMessage();
+        msg.what = 2;
+        msg.obj = key + " : " + value;
+        mHandler.sendMessage(msg);
     }
 
     @Override
     public void onBaseInfo(String key, String value) {
-        CNTrace.d("onBaseInfo key : " + key + ", value : " + value);
+        if(key.contentEquals("duration")){
+            duration = Float.valueOf(value);
+            CNTrace.d("get duration : " + duration);
+        }
+        Message msg = mHandler.obtainMessage();
+        msg.what = 2;
+        msg.obj = key + " : " + value;
+        mHandler.sendMessage(msg);
     }
 
     @Override
@@ -109,11 +148,19 @@ AudioPlayer.onPlayProgressing{
 
     @Override
     public void onBufferUpdate(String update) {
-        CNTrace.d(update);
+        CNTrace.d("update : " + update);
+        Message msg = mHandler.obtainMessage();
+        msg.what = 3;
+        msg.obj = update;
+        mHandler.sendMessage(msg);
     }
 
     @Override
     public void onPlayProgressing(String update) {
         CNTrace.d(update);
+        Message msg = mHandler.obtainMessage();
+        msg.what = 4;
+        msg.obj = update;
+        mHandler.sendMessage(msg);
     }
 }

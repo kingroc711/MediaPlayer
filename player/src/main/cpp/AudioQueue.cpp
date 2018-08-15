@@ -35,7 +35,7 @@ int AudioQueue::getAvpacket(AVPacket **packet) {
     int size;
     pthread_mutex_lock(&this->mutexPacket);
     size = this->queuePacket.size();
-    if( size > 0){
+    if(size > 0){
         *packet = this->queuePacket.front();
         this->dataSize = this->dataSize - (*packet)->size;
         this->queuePacket.pop();
