@@ -13,9 +13,10 @@ class CNAudioPlayer implements AudioPlayer {
     private native void set_metadata_listener(OnMetadataListener listener);
     private native void set_base_info_listener(OnBaseInfoListener listener);
     private native void set_get_pic_listener(OnGetPicListener listener, String path);
-    private native int get_status();
+    private native int  get_status();
     private native void set_onbufferupdate_listener(OnBufferUpdateListener listener);
-    private native void start(int sampleRate, int bufSize);
+    private native void set_start(int sampleRate, int bufSize);
+    private native void set_stop();
     private native void set_onPlayProgressing_listener(onPlayProgressing listener);
 
     public CNAudioPlayer(){
@@ -41,12 +42,12 @@ class CNAudioPlayer implements AudioPlayer {
             bufSize = Integer.parseInt(nativeParam);
         }
 
-        start(sampleRate, bufSize);
+        set_start(sampleRate, bufSize);
     }
 
     @Override
     public void stop() {
-
+        set_stop();
     }
 
     @Override

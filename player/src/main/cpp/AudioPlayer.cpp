@@ -412,6 +412,10 @@ void AudioPlayer::start(int sampleRate, int bufSize) {
     bqPlayerCallback(this->bqPlayerBufferQueue, this);
 }
 
+void AudioPlayer::stop() {
+    this->setStatus(AUDIO_STOP);
+}
+
 SLresult AudioPlayer::createEngine() {
     SLresult result;
 

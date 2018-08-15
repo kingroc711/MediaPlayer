@@ -88,6 +88,7 @@ public:
     AudioPlayer(JavaVM *g_javaVM);
     ~AudioPlayer();
 
+    void stop();
     void start(int sampleRate, int bufSize);
     void setOnPreparedListener(jmethodID listener, jobject obj);
     void setOnErrorListener(jmethodID listener, jobject obj);

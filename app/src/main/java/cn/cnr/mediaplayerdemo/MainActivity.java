@@ -6,6 +6,7 @@ import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
+import android.widget.EditText;
 import android.widget.ImageView;
 
 import java.io.File;
@@ -21,6 +22,7 @@ AudioPlayer.onPlayProgressing{
 
     private AudioPlayer player = null;
     private ImageView imageView;
+    private EditText editText;
 
     Handler mHandler = new Handler(){
         @Override
@@ -43,6 +45,7 @@ AudioPlayer.onPlayProgressing{
         setContentView(R.layout.activity_main);
 
         imageView = (ImageView)findViewById(R.id.b_pic);
+        editText = (EditText)findViewById(R.id.edit_text);
 
         player = CNPlayer.getAudioPlayerInstance();
         CNTrace.d("player statue : " + player.getStatus());
@@ -65,7 +68,11 @@ AudioPlayer.onPlayProgressing{
     }
 
     public void audio_setsource(View view) {
-        player.setSource("http://mpge.5nd.com/2015/2015-11-26/69708/1.mp3");
+        player.setSource(editText.getText().toString());
+    }
+
+    public void audio_stop(View view) {
+        player.stop();
     }
 
     @Override

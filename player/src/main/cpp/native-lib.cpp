@@ -204,6 +204,12 @@ Java_cn_cnr_player_CNAudioPlayer_get_1status(JNIEnv *env, jobject instance) {
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_cn_cnr_player_CNAudioPlayer_start__II(JNIEnv *env, jobject instance, jint sampleRate, jint bufSize) {
+Java_cn_cnr_player_CNAudioPlayer_set_1start(JNIEnv *env, jobject instance, jint sampleRate, jint bufSize) {
     gAudioPlayer->start(sampleRate, bufSize);
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_cn_cnr_player_CNAudioPlayer_set_1stop(JNIEnv *env, jobject instance) {
+    gAudioPlayer->stop();
 }
