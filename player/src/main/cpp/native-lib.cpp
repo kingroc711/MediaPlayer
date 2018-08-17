@@ -35,17 +35,10 @@ Java_cn_cnr_player_CNAudioPlayer_create_1audio(JNIEnv *env, jobject instance) {
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_cn_cnr_player_CNAudioPlayer_set_1source(JNIEnv *env, jobject instance, jstring path_) {
-    const char *path = env->GetStringUTFChars(path_, JNI_FALSE);
-    gAudioPlayer->setSource(path);
-    env->ReleaseStringUTFChars(path_, path);
-}
-
-/*this fun will create thread download avPacket*/
-extern "C"
-JNIEXPORT void JNICALL
-Java_cn_cnr_player_CNAudioPlayer_set_1prepared(JNIEnv *env, jobject instance) {
-    gAudioPlayer->setPrepared();
+Java_cn_cnr_player_CNAudioPlayer_set_1prepared(JNIEnv *env, jobject instance, jstring source_) {
+    const char *source = env->GetStringUTFChars(source_, 0);
+    gAudioPlayer->setPrepared(source);
+    env->ReleaseStringUTFChars(source_, source);
 }
 
 /*set onPrepared listener, this listener will call java level listener, return some thing about audio information. */

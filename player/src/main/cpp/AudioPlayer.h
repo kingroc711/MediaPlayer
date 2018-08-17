@@ -102,9 +102,7 @@ public:
     void setGetPicListener(jmethodID listener, jobject obj, const char* path);
     void setOnBufferUpdateListener(jmethodID listener, jobject obj);
     void setOnPlayProgressing(jmethodID listener, jobject obj);
-
-    void setPrepared();
-    void setSource(const char* path);
+    void setPrepared(const char* srouce);
 
     void onError(const char* s, int errorCode);
     void onPrepared(const char* s);

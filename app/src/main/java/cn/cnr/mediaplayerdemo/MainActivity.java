@@ -89,15 +89,11 @@ AudioPlayer.onPlayProgressing{
     }
 
     public void audio_prepared(View view) {
-        player.setPrepared();
+        player.setPrepared(editText.getText().toString());
     }
 
     public void audio_start(View view) {
         player.start(this);
-    }
-
-    public void audio_setsource(View view) {
-        player.setSource(editText.getText().toString());
     }
 
     public void audio_stop(View view) {
