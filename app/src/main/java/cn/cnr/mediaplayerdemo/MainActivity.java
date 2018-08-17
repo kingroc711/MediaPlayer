@@ -7,8 +7,10 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
+import android.widget.SeekBar;
 import android.widget.TextView;
 
 import java.io.File;
@@ -21,13 +23,13 @@ import cn.cnr.player.CNTrace;
 public class MainActivity extends AppCompatActivity implements AudioPlayer.OnPreparedListener, AudioPlayer.OnErrorListener,
     AudioPlayer.OnMetadataListener, AudioPlayer.OnBaseInfoListener, AudioPlayer.OnGetPicListener, AudioPlayer.OnBufferUpdateListener,
 AudioPlayer.onPlayProgressing{
-
+    private ImageButton mPauseButton;
     private AudioPlayer player = null;
     private ImageView imageView;
     private EditText editText;
     private TextView  textView;
-    private ProgressBar progressBar;
-
+    private SeekBar progressBar;
+    private boolean isPause = true;
     private Float duration;
 
     Handler mHandler = new Handler(){
@@ -70,11 +72,11 @@ AudioPlayer.onPlayProgressing{
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
+        mPauseButton = findViewById(R.id.pause);
         imageView = (ImageView)findViewById(R.id.b_pic);
         editText = (EditText)findViewById(R.id.edit_text);
         textView = (TextView)findViewById(R.id.base_info);
-        progressBar = (ProgressBar)findViewById(R.id.progressBarHorizontal);
+        progressBar = (SeekBar)findViewById(R.id.progressBarHorizontal);
 
         player = CNPlayer.getAudioPlayerInstance();
         CNTrace.d("player statue : " + player.getStatus());
@@ -86,25 +88,44 @@ AudioPlayer.onPlayProgressing{
         player.setGetPicListener(this, this.getCacheDir().toString());
         player.setBufferUpdateListener(this);
         player.setPlayProgressing(this);
-    }
-
-    public void audio_prepared(View view) {
         player.setPrepared(editText.getText().toString());
     }
 
     public void audio_start(View view) {
-        player.start(this);
+        doPauseResume();
     }
 
-    public void audio_stop(View view) {
-        player.stop();
-    }
+
 
     @Override
     public void onPrepared(String s) {
         CNTrace.d("onPrepared : " + s);
         CNTrace.d("player statue : " + player.getStatus());
     }
+    private void doPauseResume() {
+        if (!isPause) {
+            isPause = true;
+            player.stop();
+        } else {
+            isPause =false;
+            player.start(this);
+        }
+        updatePausePlay();
+    }
+    private void updatePausePlay() {
+        if ( mPauseButton != null)
+            updatePausePlay(isPause, mPauseButton);
+    }
+
+    protected void updatePausePlay(boolean isPlaying, ImageView pauseButton) {
+        if (isPlaying) {
+            pauseButton.setImageResource(R.mipmap.ic_media_play);
+        } else {
+            pauseButton.setImageResource(R.mipmap.ic_media_pause);
+        }
+    }
+
+
 
     @Override
     public void onError(String s, int errorCode) {

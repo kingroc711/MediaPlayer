@@ -1,77 +1,142 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<LinearLayout android:layout_width="match_parent"
-    android:layout_height="match_parent"
+<android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:orientation="vertical"
-    tools:context="cn.cnr.mediaplayerdemo.MainActivity"
-    xmlns:android="http://schemas.android.com/apk/res/android">
+    android:id="@+id/linearLayout3"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context="cn.cnr.mediaplayerdemo.MainActivity">
 
 
     <EditText
         android:id="@+id/edit_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="8dp"
+        android:layout_marginLeft="8dp"
+        android:layout_marginRight="8dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="8dp"
         android:text="http://mpge.5nd.com/2015/2015-11-26/69708/1.mp3"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+
+    <ImageView
+        android:id="@+id/b_pic"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="8dp"
+        android:layout_marginLeft="8dp"
+        android:layout_marginRight="8dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="8dp"
+        android:background="@drawable/ic_launcher_background"
+        android:text="here show pic"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/edit_text" />
+
+    <TextView
+        android:id="@+id/base_info"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content" />
+        android:layout_height="0dp"
+        android:layout_marginBottom="8dp"
+        android:layout_marginEnd="8dp"
+        android:layout_marginLeft="8dp"
+        android:layout_marginRight="8dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="8dp"
+        android:gravity="center|top"
+        android:text="base info and meta data"
+        app:layout_constraintBottom_toTopOf="@+id/progressBarHorizontal"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/b_pic" />
 
-    <LinearLayout
-        android:orientation="horizontal"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content">
 
-
-        <Button
-            android:id="@+id/b_prepared"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:onClick="audio_prepared"
-            android:layout_weight="1"
-            android:text="prepare"
-            />
-
-        <Button
-            android:id="@+id/b_start"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:onClick="audio_start"
-            android:layout_weight="1"
-            android:text="start"
-            />
-
-        <Button
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:onClick="audio_stop"
-            android:layout_weight="1"
-            android:text="stop"
-            />
-    </LinearLayout>
-
-    <LinearLayout
-        android:orientation="horizontal"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content">
-        <ImageView
-            android:id="@+id/b_pic"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="here show pic"
-        />
-
-        <TextView
-            android:id="@+id/base_info"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="base info and meta data"/>
-    </LinearLayout>
-
-    <ProgressBar
-        android:max="100"
-        android:progress="0"
-        android:secondaryProgress="0"
+    <SeekBar
         android:id="@+id/progressBarHorizontal"
         style="?android:attr/progressBarStyleHorizontal"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"/>
+        android:layout_height="16dp"
+        android:layout_marginBottom="8dp"
+        android:layout_marginEnd="8dp"
+        android:layout_marginLeft="8dp"
+        android:layout_marginRight="8dp"
+        android:layout_marginStart="8dp"
+        android:max="100"
+        android:progress="0"
+        android:secondaryProgress="0"
+        app:layout_constraintBottom_toTopOf="@+id/linearLayout2"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
 
-</LinearLayout>
+    <android.support.constraint.ConstraintLayout
+        android:id="@+id/linearLayout2"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
+        android:layout_marginEnd="8dp"
+        android:layout_marginLeft="8dp"
+        android:layout_marginRight="8dp"
+        android:layout_marginStart="8dp"
+        android:gravity="center"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent">
+
+        <ImageButton
+            android:id="@+id/prev"
+            style="@android:style/MediaButton.Previous"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:layout_constraintBottom_toBottomOf="@+id/rew"
+            app:layout_constraintEnd_toStartOf="@+id/rew"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="@+id/rew" />
+
+        <ImageButton
+            android:id="@+id/rew"
+            style="@android:style/MediaButton.Rew"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:layout_constraintBottom_toBottomOf="@+id/pause"
+            app:layout_constraintEnd_toStartOf="@+id/pause"
+            app:layout_constraintStart_toEndOf="@+id/prev"
+            app:layout_constraintTop_toTopOf="@+id/pause" />
+
+        <ImageButton
+            android:id="@+id/pause"
+            style="@android:style/MediaButton.Play"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:onClick="audio_start"
+            app:layout_constraintBottom_toBottomOf="@+id/ffwd"
+            app:layout_constraintEnd_toStartOf="@+id/ffwd"
+            app:layout_constraintStart_toEndOf="@+id/rew"
+            app:layout_constraintTop_toTopOf="@+id/ffwd" />
+
+        <ImageButton
+            android:id="@+id/ffwd"
+            style="@android:style/MediaButton.Ffwd"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:layout_constraintBottom_toBottomOf="@+id/next"
+            app:layout_constraintEnd_toStartOf="@+id/next"
+            app:layout_constraintStart_toEndOf="@+id/pause"
+            app:layout_constraintTop_toTopOf="@+id/next" />
+
+        <ImageButton
+            android:id="@+id/next"
+            style="@android:style/MediaButton.Next"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toEndOf="@+id/ffwd"
+            app:layout_constraintTop_toTopOf="parent" />
+
+    </android.support.constraint.ConstraintLayout>
+</android.support.constraint.ConstraintLayout>
