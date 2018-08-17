@@ -7,7 +7,7 @@ import android.os.Build;
 class CNAudioPlayer implements AudioPlayer {
     private native void create_audio();
     private native void set_source(String path);
-    private native void set_prepared();
+    private native void set_prepared(String source);
     private native void set_onprepared_listener(OnPreparedListener listener);
     private native void set_onerror_listener(OnErrorListener listener);
     private native void set_metadata_listener(OnMetadataListener listener);
@@ -51,8 +51,8 @@ class CNAudioPlayer implements AudioPlayer {
     }
 
     @Override
-    public void setPrepared() {
-        set_prepared();
+    public void setPrepared(String source) {
+        set_prepared(source);
     }
 
     @Override
@@ -98,11 +98,6 @@ class CNAudioPlayer implements AudioPlayer {
     @Override
     public void seek(int sec) {
 
-    }
-
-    @Override
-    public void setSource(String path) {
-        set_source(path);
     }
 
     @Override

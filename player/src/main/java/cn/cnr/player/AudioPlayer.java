@@ -5,10 +5,9 @@ import android.content.Context;
 public interface AudioPlayer {
     void start(Context context);
     void stop();
-    void setPrepared();
+    void setPrepared(String source);
     void release();
     void seek(int sec);
-    void setSource(String path);
     void setLooping(boolean looping);
 
     String getStatus();

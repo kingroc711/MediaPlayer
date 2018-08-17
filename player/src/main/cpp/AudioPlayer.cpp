@@ -9,15 +9,13 @@ void* toPrepared(void* data){
     pthread_exit(&player->thread_t);
 }
 
-void AudioPlayer::setPrepared() {
-    pthread_create(&this->thread_t, NULL, toPrepared, this);
-}
-
-void AudioPlayer::setSource(const char* path) {
-    int len = strlen(path);
+void AudioPlayer::setPrepared(const char* source) {
+    int len = strlen(source);
     this->audio_path = (char*)malloc(len + 1);
-    strcpy(this->audio_path, path);
+    strcpy(this->audio_path, source);
     LOGD("set source path %s\n", this->audio_path);
+
+    pthread_create(&this->thread_t, NULL, toPrepared, this);
 }
 
 AudioPlayer::AudioPlayer(JavaVM *g_javaVM) {
@@ -416,7 +414,12 @@ void AudioPlayer::start(int sampleRate, int bufSize) {
 }
 
 void AudioPlayer::stop() {
-    this->setStatus(AUDIO_STOP);
+    // set the player's state to stop
+    SLresult result = (*this->bqPlayerPlay)->SetPlayState(this->bqPlayerPlay, SL_PLAYSTATE_STOPPED);
+    if(SL_RESULT_SUCCESS != result){
+        LOGE("set the player's state to playing");
+        return;
+    }
 }
 
 SLresult AudioPlayer::createEngine() {
@@ -601,7 +604,7 @@ SLresult AudioPlayer::createBufferQueue(int sampleRate, int bufSize) {
 void AudioPlayer::bqPlayerCallback(SLAndroidSimpleBufferQueueItf bq, void *context) {
 
     AVPacket *avPacket = NULL;
-    if(this->getStatus() == AUDIO_PLAYING && this->audioQueue->getAvpacket(&avPacket) > 0){
+    if(this->audioQueue->getAvpacket(&avPacket) > 0){
         int ret = avcodec_send_packet(this->avCodecContext, avPacket);
         if (ret != 0){
             LOGE("avcode send packet error ret : %d\n", ret);
@@ -615,13 +618,6 @@ void AudioPlayer::bqPlayerCallback(SLAndroidSimpleBufferQueueItf bq, void *conte
             return;
         }
 
-        this->lastPlayTimeStamp = (avPacket->pts + avPacket->duration) * this->timeBase;
-        if(this->lastPlayTimeStamp - this->playTimeStamp  > this->bufferUpdateDur/4){
-            this->playTimeStamp = this->lastPlayTimeStamp;
-            char buf[128];
-            sprintf(buf, "%f", this->lastPlayTimeStamp);
-            this->onPlayProgressing(buf);
-        }
         AVFrame *frame = av_frame_alloc();
         ret = avcodec_receive_frame(this->avCodecContext, frame);
         if(ret != 0){
@@ -631,6 +627,15 @@ void AudioPlayer::bqPlayerCallback(SLAndroidSimpleBufferQueueItf bq, void *conte
             av_packet_free(&avPacket);
             return;
         }
+
+        this->lastPlayTimeStamp = (frame->pts + frame->pkt_duration) * this->timeBase;
+        if(this->lastPlayTimeStamp - this->playTimeStamp  > this->bufferUpdateDur/4){
+            this->playTimeStamp = this->lastPlayTimeStamp;
+            char buf[128];
+            sprintf(buf, "%f", this->lastPlayTimeStamp);
+            this->onPlayProgressing(buf);
+        }
+
 
         this->nextSize = av_samples_get_buffer_size(frame->linesize, this->avCodecContext->channels,
                                                     this->avCodecContext->frame_size, this->avCodecContext->sample_fmt, 1);
