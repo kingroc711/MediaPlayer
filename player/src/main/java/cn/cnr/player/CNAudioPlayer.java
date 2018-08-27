@@ -5,7 +5,7 @@ import android.media.AudioManager;
 import android.os.Build;
 
 class CNAudioPlayer implements AudioPlayer {
-    private native void create_audio();
+    private native void create_audio(int sampleRate, int bufSize);
     private native void set_prepared(String source);
     private native void set_onprepared_listener(OnPreparedListener listener);
     private native void set_onerror_listener(OnErrorListener listener);
@@ -14,20 +14,12 @@ class CNAudioPlayer implements AudioPlayer {
     private native void set_get_pic_listener(OnGetPicListener listener, String path);
     private native int  get_status();
     private native void set_onbufferupdate_listener(OnBufferUpdateListener listener);
-    private native void set_start(int sampleRate, int bufSize);
+    private native void set_start();
     private native void set_stop();
     private native void set_pause();
     private native void set_onPlayProgressing_listener(onPlayProgressing listener);
 
-    public CNAudioPlayer(){
-        create_audio();
-    }
-
-    @Override
-    public void start(Context context) {
-        int statue = get_status();
-
-
+    public CNAudioPlayer(Context context){
         int sampleRate = 0;
         int bufSize = 0;
 
@@ -45,7 +37,12 @@ class CNAudioPlayer implements AudioPlayer {
             bufSize = Integer.parseInt(nativeParam);
         }
 
-        set_start(sampleRate, bufSize);
+        create_audio(sampleRate, bufSize);
+    }
+
+    @Override
+    public void start(Context context) {
+        set_start();
     }
 
     @Override

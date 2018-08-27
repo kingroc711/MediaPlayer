@@ -91,11 +91,11 @@ private:
 
 public:
     pthread_t thread_t;
-    AudioPlayer(JavaVM *g_javaVM);
+    AudioPlayer(JavaVM *g_javaVM, int sampleRate, int bufSize);
     ~AudioPlayer();
 
     void stop();
-    void start(int sampleRate, int bufSize);
+    void start();
     void pause();
     void setOnPreparedListener(jmethodID listener, jobject obj);
     void setOnErrorListener(jmethodID listener, jobject obj);

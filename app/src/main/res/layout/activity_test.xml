@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<LinearLayout android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:orientation="vertical"
+    tools:context="cn.cnr.mediaplayerdemo.MainActivity"
+    xmlns:android="http://schemas.android.com/apk/res/android">
+
+
+    <EditText
+        android:id="@+id/edit_text"
+        android:text="http://mpge.5nd.com/2015/2015-11-26/69708/1.mp3"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+
+    <LinearLayout
+        android:orientation="horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+
+        <Button
+            android:id="@+id/b_prepared"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:onClick="audio_prepared"
+            android:layout_weight="1"
+            android:text="prepare"
+            />
+
+        <Button
+            android:id="@+id/b_start"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:onClick="audio_start"
+            android:layout_weight="1"
+            android:text="start"
+            />
+
+        <Button
+            android:id="@+id/b_pause"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:onClick="audio_pause"
+            android:layout_weight="1"
+            android:text="puase"
+            />
+
+        <Button
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:onClick="audio_stop"
+            android:layout_weight="1"
+            android:text="stop"
+            />
+    </LinearLayout>
+
+    <LinearLayout
+        android:orientation="horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+        <ImageView
+            android:id="@+id/b_pic"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="here show pic"
+            />
+
+        <TextView
+            android:id="@+id/base_info"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="base info and meta data"/>
+    </LinearLayout>
+
+    <ProgressBar
+        android:max="100"
+        android:progress="0"
+        android:secondaryProgress="0"
+        android:id="@+id/progressBarHorizontal"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"/>
+
+</LinearLayout>

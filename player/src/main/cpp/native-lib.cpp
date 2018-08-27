@@ -28,9 +28,9 @@ AudioPlayer *gAudioPlayer;
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_cn_cnr_player_CNAudioPlayer_create_1audio(JNIEnv *env, jobject instance) {
+Java_cn_cnr_player_CNAudioPlayer_create_1audio(JNIEnv *env, jobject instance, jint sampleRate, jint bufSize) {
     LOGD("new audioPlayer.");
-    gAudioPlayer = new AudioPlayer(g_javaVM);
+    gAudioPlayer = new AudioPlayer(g_javaVM, sampleRate, bufSize);
 }
 
 extern "C"
@@ -197,12 +197,6 @@ Java_cn_cnr_player_CNAudioPlayer_get_1status(JNIEnv *env, jobject instance) {
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_cn_cnr_player_CNAudioPlayer_set_1start(JNIEnv *env, jobject instance, jint sampleRate, jint bufSize) {
-    gAudioPlayer->start(sampleRate, bufSize);
-}
-
-extern "C"
-JNIEXPORT void JNICALL
 Java_cn_cnr_player_CNAudioPlayer_set_1stop(JNIEnv *env, jobject instance) {
     gAudioPlayer->stop();
 }
@@ -211,4 +205,10 @@ extern "C"
 JNIEXPORT void JNICALL
 Java_cn_cnr_player_CNAudioPlayer_set_1pause(JNIEnv *env, jobject instance) {
     gAudioPlayer->pause();
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_cn_cnr_player_CNAudioPlayer_set_1start(JNIEnv *env, jobject instance) {
+    gAudioPlayer->start();
 }

@@ -17,7 +17,7 @@ void AudioPlayer::setPrepared(const char* source) {
     pthread_create(&this->thread_t, NULL, toPrepared, this);
 }
 
-AudioPlayer::AudioPlayer(JavaVM *g_javaVM) {
+AudioPlayer::AudioPlayer(JavaVM *g_javaVM, int sampleRate, int bufSize) {
     this->g_javaVM = g_javaVM;
     this->setStatus(AUDIO_CREATE);
     this->audioQueue = new AudioQueue();
@@ -29,6 +29,15 @@ AudioPlayer::AudioPlayer(JavaVM *g_javaVM) {
         return;
     }
     LOGD("create player engine OK");
+
+
+    result = this->createBufferQueue(sampleRate, bufSize);
+    if(result != SL_RESULT_SUCCESS){
+        LOGE("create buffer queue error %d\n", result);
+        this->onError("\"create buffer queue error", result);
+        return;
+    }
+    LOGD("create buffer queue OK");
 }
 
 AudioPlayer::~AudioPlayer() {
@@ -389,7 +398,7 @@ void AudioPlayer::prepared_fun() {
     return;
 }
 
-void AudioPlayer::start(int sampleRate, int bufSize) {
+void AudioPlayer::start() {
     if(this->getStatus() == AUDIO_PAUSE){
         LOGD("start on pause !");
         SLresult result = (*this->bqPlayerPlay)->SetPlayState(this->bqPlayerPlay, SL_PLAYSTATE_PLAYING);
@@ -399,28 +408,37 @@ void AudioPlayer::start(int sampleRate, int bufSize) {
         return;
     }
 
-    SLresult result = this->createBufferQueue(sampleRate, bufSize);
-    if(result != SL_RESULT_SUCCESS){
-        LOGE("create buffer queue error %d\n", result);
-        this->onError("\"create buffer queue error", result);
-        return;
-    }
-    LOGD("create buffer queue OK");
-    this->initSWR();
-
     this->setStatus(AUDIO_PLAYING);
-
+    this->initSWR();
     bqPlayerCallback(this->bqPlayerBufferQueue, this);
 }
 
 void AudioPlayer::stop() {
+    if(this->getStatus() < AUDIO_PREPARED){
+        LOGD("statue < PREPARED");
+        return;
+    }
+
+    this->setStatus(AUDIO_STOP);
+
     // set the player's state to stop
     SLresult result = (*this->bqPlayerPlay)->SetPlayState(this->bqPlayerPlay, SL_PLAYSTATE_STOPPED);
     if(SL_RESULT_SUCCESS != result){
-        LOGE("set the player's state to playing");
+        LOGE("set the player's state to playing result : %d\n", result);
         return;
     }
-    this->setStatus(AUDIO_STOP);
+
+    swr_free(&this->swr_ctx);
+    avformat_close_input(&this->pFormatCtx);
+    avformat_free_context(this->pFormatCtx);
+
+    avcodec_close(this->avCodecContext);
+    avcodec_free_context(&this->avCodecContext);
+
+    AVPacket *packet;
+    while(this->audioQueue->getAvpacket(&packet) > 0){
+        av_packet_free(&packet);
+    }
 }
 
 void AudioPlayer::pause() {
@@ -514,7 +532,7 @@ SLresult AudioPlayer::createBufferQueue(int sampleRate, int bufSize) {
     SLDataLocator_AndroidSimpleBufferQueue loc_bufq = {SL_DATALOCATOR_ANDROIDSIMPLEBUFFERQUEUE, 2};
     SLDataFormat_PCM format_pcm = {SL_DATAFORMAT_PCM,
                                    2,
-                                   this->avCodecContext->sample_rate,
+                                   this->bqPlayerSampleRate,
                                    SL_PCMSAMPLEFORMAT_FIXED_16, SL_PCMSAMPLEFORMAT_FIXED_16,
                                    SL_SPEAKER_FRONT_LEFT | SL_SPEAKER_FRONT_RIGHT,
                                    SL_BYTEORDER_LITTLEENDIAN};
@@ -652,7 +670,7 @@ void AudioPlayer::bqPlayerCallback(SLAndroidSimpleBufferQueueItf bq, void *conte
         ret = swr_convert(this->swr_ctx, &this->outputBuffer, frame->nb_samples,
                           (const uint8_t **) frame->data, frame->nb_samples);
         (*this->bqPlayerBufferQueue)->Enqueue(this->bqPlayerBufferQueue, this->outputBuffer, this->nextSize);
-        LOGD("swr_convert ret : %d", ret);
+        //LOGD("swr_convert ret : %d", ret);
         av_frame_free(&frame);
         av_packet_free(&avPacket);
     }else if(this->lastPlayTimeStamp - this->playTimeStamp > 0){
