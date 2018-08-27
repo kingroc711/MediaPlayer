@@ -206,3 +206,9 @@ JNIEXPORT void JNICALL
 Java_cn_cnr_player_CNAudioPlayer_set_1stop(JNIEnv *env, jobject instance) {
     gAudioPlayer->stop();
 }
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_cn_cnr_player_CNAudioPlayer_set_1pause(JNIEnv *env, jobject instance) {
+    gAudioPlayer->pause();
+}

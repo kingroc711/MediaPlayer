@@ -10,11 +10,10 @@ void* toPrepared(void* data){
 }
 
 void AudioPlayer::setPrepared(const char* source) {
-    int len = strlen(source);
-    this->audio_path = (char*)malloc(len + 1);
     strcpy(this->audio_path, source);
     LOGD("set source path %s\n", this->audio_path);
 
+    this->setStatus(AUDIO_TOPREPARE);
     pthread_create(&this->thread_t, NULL, toPrepared, this);
 }
 
@@ -22,13 +21,17 @@ AudioPlayer::AudioPlayer(JavaVM *g_javaVM) {
     this->g_javaVM = g_javaVM;
     this->setStatus(AUDIO_CREATE);
     this->audioQueue = new AudioQueue();
+
+    SLresult result = this->createEngine();
+    if(result != SL_RESULT_SUCCESS){
+        LOGE("create player error %d.", result);
+        this->onError("create player error.", result);
+        return;
+    }
+    LOGD("create player engine OK");
 }
 
 AudioPlayer::~AudioPlayer() {
-    free (this->audio_path);
-    this->audio_path = NULL;
-    free (this->picPath);
-
     delete(this->audioQueue);
 
     unlink(this->picPath);
@@ -84,7 +87,6 @@ void AudioPlayer::setGetPicListener(jmethodID listener, jobject obj, const char*
     this->jmidGetPic = listener;
     this->objGetPic = obj;
 
-    this->picPath = (char*)malloc(strlen(path) + 1);
     strcpy(this->picPath, path);
 }
 
@@ -372,7 +374,6 @@ void AudioPlayer::prepared_fun() {
         }else{
             av_packet_unref(avPacket);
             av_free(avPacket);
-            //LOGD("av read frame ret : %d\n", ret);
             break;
         }
     }
@@ -389,16 +390,16 @@ void AudioPlayer::prepared_fun() {
 }
 
 void AudioPlayer::start(int sampleRate, int bufSize) {
-
-    SLresult result = this->createEngine();
-    if(result != SL_RESULT_SUCCESS){
-        LOGE("create player error %d.", result);
-        this->onError("create player error.", result);
+    if(this->getStatus() == AUDIO_PAUSE){
+        LOGD("start on pause !");
+        SLresult result = (*this->bqPlayerPlay)->SetPlayState(this->bqPlayerPlay, SL_PLAYSTATE_PLAYING);
+        if(SL_RESULT_SUCCESS != result){
+            LOGE("set the player's state to playing");
+        }
         return;
     }
-    LOGD("create player engine OK");
 
-    result = this->createBufferQueue(sampleRate, bufSize);
+    SLresult result = this->createBufferQueue(sampleRate, bufSize);
     if(result != SL_RESULT_SUCCESS){
         LOGE("create buffer queue error %d\n", result);
         this->onError("\"create buffer queue error", result);
@@ -408,7 +409,6 @@ void AudioPlayer::start(int sampleRate, int bufSize) {
     this->initSWR();
 
     this->setStatus(AUDIO_PLAYING);
-    this->playTimeStamp = 0;
 
     bqPlayerCallback(this->bqPlayerBufferQueue, this);
 }
@@ -420,6 +420,16 @@ void AudioPlayer::stop() {
         LOGE("set the player's state to playing");
         return;
     }
+    this->setStatus(AUDIO_STOP);
+}
+
+void AudioPlayer::pause() {
+    SLresult  result = (*this->bqPlayerPlay)->SetPlayState(this->bqPlayerPlay, SL_PLAYSTATE_PAUSED);
+    if(SL_RESULT_SUCCESS != result){
+        LOGE("set the player's state to pause");
+        return;
+    }
+    this->setStatus(AUDIO_PAUSE);
 }
 
 SLresult AudioPlayer::createEngine() {
@@ -628,9 +638,9 @@ void AudioPlayer::bqPlayerCallback(SLAndroidSimpleBufferQueueItf bq, void *conte
             return;
         }
 
-        this->lastPlayTimeStamp = (frame->pts + frame->pkt_duration) * this->timeBase;
-        if(this->lastPlayTimeStamp - this->playTimeStamp  > this->bufferUpdateDur/4){
-            this->playTimeStamp = this->lastPlayTimeStamp;
+        this->playTimeStamp = (frame->pts + frame->pkt_duration) * this->timeBase;
+        if(this->playTimeStamp - this->lastPlayTimeStamp  > this->bufferUpdateDur/4){
+            this->lastPlayTimeStamp = this->playTimeStamp;
             char buf[128];
             sprintf(buf, "%f", this->lastPlayTimeStamp);
             this->onPlayProgressing(buf);
@@ -642,7 +652,7 @@ void AudioPlayer::bqPlayerCallback(SLAndroidSimpleBufferQueueItf bq, void *conte
         ret = swr_convert(this->swr_ctx, &this->outputBuffer, frame->nb_samples,
                           (const uint8_t **) frame->data, frame->nb_samples);
         (*this->bqPlayerBufferQueue)->Enqueue(this->bqPlayerBufferQueue, this->outputBuffer, this->nextSize);
-        //LOGD("swr_convert ret : %d", ret);
+        LOGD("swr_convert ret : %d", ret);
         av_frame_free(&frame);
         av_packet_free(&avPacket);
     }else if(this->lastPlayTimeStamp - this->playTimeStamp > 0){

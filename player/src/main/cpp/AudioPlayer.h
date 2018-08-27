@@ -24,22 +24,23 @@ class AudioPlayer {
 private:
     enum Status {
         AUDIO_CREATE = 0,
-        AUDIO_PREPARED = 1,
-        AUDIO_PLAYING = 2,
-        AUDIO_PAUSE = 3,
-        AUDIO_STOP = 4
+        AUDIO_TOPREPARE = 1,
+        AUDIO_PREPARED = 2,
+        AUDIO_PLAYING = 3,
+        AUDIO_PAUSE = 4,
+        AUDIO_STOP = 5
     };
 
 private:
-    char* audio_path = NULL;
-    char* picPath;
+    char audio_path[1024];
+    char picPath[1024];
 
     Status playStatus;
     double timeBase;
 
     int streamIndex;
 
-    JavaVM *g_javaVM = NULL;
+    JavaVM *g_javaVM;
     jmethodID jmidOnparpared;
     jmethodID jmidOnError = NULL;
     jmethodID jmidMetadata = NULL;
@@ -95,6 +96,7 @@ public:
 
     void stop();
     void start(int sampleRate, int bufSize);
+    void pause();
     void setOnPreparedListener(jmethodID listener, jobject obj);
     void setOnErrorListener(jmethodID listener, jobject obj);
     void setMetaDataListener(jmethodID listener, jobject obj);

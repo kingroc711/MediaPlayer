@@ -3,14 +3,16 @@ package cn.cnr.player;
 import android.content.Context;
 
 public interface AudioPlayer {
-    void start(Context context);
-    void stop();
     void setPrepared(String source);
+    void start(Context context);
+    void pause();
+    void stop();
     void release();
     void seek(int sec);
     void setLooping(boolean looping);
 
     String getStatus();
+    int getStatusInt();
 
     void setOnPreparedListener(OnPreparedListener listener);
     void setOnErrorListener(OnErrorListener listener);

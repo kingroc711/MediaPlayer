@@ -6,7 +6,6 @@ import android.os.Build;
 
 class CNAudioPlayer implements AudioPlayer {
     private native void create_audio();
-    private native void set_source(String path);
     private native void set_prepared(String source);
     private native void set_onprepared_listener(OnPreparedListener listener);
     private native void set_onerror_listener(OnErrorListener listener);
@@ -17,6 +16,7 @@ class CNAudioPlayer implements AudioPlayer {
     private native void set_onbufferupdate_listener(OnBufferUpdateListener listener);
     private native void set_start(int sampleRate, int bufSize);
     private native void set_stop();
+    private native void set_pause();
     private native void set_onPlayProgressing_listener(onPlayProgressing listener);
 
     public CNAudioPlayer(){
@@ -25,6 +25,9 @@ class CNAudioPlayer implements AudioPlayer {
 
     @Override
     public void start(Context context) {
+        int statue = get_status();
+
+
         int sampleRate = 0;
         int bufSize = 0;
 
@@ -43,6 +46,11 @@ class CNAudioPlayer implements AudioPlayer {
         }
 
         set_start(sampleRate, bufSize);
+    }
+
+    @Override
+    public void pause() {
+        set_pause();
     }
 
     @Override
@@ -112,15 +120,22 @@ class CNAudioPlayer implements AudioPlayer {
             case 0:
                 return "AUDIO_CREATE";
             case 1:
-                return "AUDIO_PREPARED";
+                return "AUDIO_TOPREPARE";
             case 2:
-                return "AUDIO_START";
+                return "AUDIO_PREPARED";
             case 3:
-                return "AUDIO_PAUSE";
+                return "AUDIO_PLAYING";
             case 4:
+                return "AUDIO_PAUSE";
+            case 5:
                 return "AUDIO_STOP";
                 default:
                     return "UNKNOW";
         }
+    }
+
+    @Override
+    public int getStatusInt() {
+        return get_status();
     }
 }
