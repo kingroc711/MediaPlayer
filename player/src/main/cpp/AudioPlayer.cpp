@@ -10,6 +10,11 @@ void* toPrepared(void* data){
 }
 
 void AudioPlayer::setPrepared(const char* source) {
+    if(this->getStatus() != AUDIO_STOP && this->getStatus() != AUDIO_CREATE){
+        LOGD("setPrepared status error now status : %d", this->getStatus());
+        return;
+    }
+
     strcpy(this->audio_path, source);
     LOGD("set source path %s\n", this->audio_path);
 
@@ -100,6 +105,13 @@ void AudioPlayer::setGetPicListener(jmethodID listener, jobject obj, const char*
 }
 
 
+void AudioPlayer::setOnCompletionListener(jmethodID pID, jobject pJobject) {
+    LOGD("jni set completion listener ");
+    this->jmidOnCompletion = pID;
+    this->objOnCompletion = pJobject;
+}
+
+
 void AudioPlayer::setBaseInfoListener(jmethodID listener, jobject obj) {
     LOGD("jni set on base info listener.\n");
     this->jmidBaseInfo = listener;
@@ -157,6 +169,19 @@ void AudioPlayer::onGetPic(const char* path) {
         env->CallVoidMethod(this->objGetPic, this->jmidGetPic, s);
         env->DeleteLocalRef(s);
 
+        if(getEnvStat == JNI_EDETACHED)
+            this->g_javaVM->DetachCurrentThread();
+    }
+}
+
+void AudioPlayer::onCompletion() {
+    if(this->jmidOnCompletion){
+        JNIEnv *env;
+        int getEnvStat = this->g_javaVM->GetEnv((void **)&env, JNI_VERSION_1_4);
+        if(getEnvStat == JNI_EDETACHED)
+            this->g_javaVM->AttachCurrentThread(&env, NULL);
+
+        env->CallVoidMethod(this->objOnCompletion, this->jmidOnCompletion);
         if(getEnvStat == JNI_EDETACHED)
             this->g_javaVM->DetachCurrentThread();
     }
@@ -262,14 +287,17 @@ void AudioPlayer::prepared_fun() {
     avformat_network_init();
     this->pFormatCtx = avformat_alloc_context();
 
-    AVDictionary* format_opts = NULL;
-    if (!av_dict_get(format_opts, "scan_all_pmts", NULL, AV_DICT_MATCH_CASE)) {
-        av_dict_set(&format_opts, "scan_all_pmts", "1", AV_DICT_DONT_OVERWRITE);
+    if (!av_dict_get(this->format_opts, "scan_all_pmts", NULL, AV_DICT_MATCH_CASE)) {
+        av_dict_set(&this->format_opts, "scan_all_pmts", "1", AV_DICT_DONT_OVERWRITE);
+        av_dict_set(&this->format_opts, "timeout", "5000", 0);
     }
 
-    if(avformat_open_input(&this->pFormatCtx, this->audio_path, NULL, &format_opts))
+    if(avformat_open_input(&this->pFormatCtx, this->audio_path, NULL, &this->format_opts))
     {
         LOGE("can not open url :%s", this->audio_path);
+        avformat_free_context(this->pFormatCtx);
+        av_dict_free(&this->format_opts);
+
         this->onError("avformat can not open url.", -1);
         return;
     }
@@ -405,43 +433,59 @@ void AudioPlayer::start() {
         if(SL_RESULT_SUCCESS != result){
             LOGE("set the player's state to playing");
         }
+        this->setStatus(AUDIO_PLAYING);
         return;
+    }else if (this->getStatus() == AUDIO_PREPARED){
+        this->setStatus(AUDIO_PLAYING);
+        this->initSWR();
+        SLresult result = (*this->bqPlayerPlay)->SetPlayState(this->bqPlayerPlay, SL_PLAYSTATE_PLAYING);
+        bqPlayerCallback(this->bqPlayerBufferQueue, this);
+    }else{
+        LOGE("status error : %d", this->getStatus());
     }
-
-    this->setStatus(AUDIO_PLAYING);
-    this->initSWR();
-    bqPlayerCallback(this->bqPlayerBufferQueue, this);
 }
 
 void AudioPlayer::stop() {
-    if(this->getStatus() < AUDIO_PREPARED){
-        LOGD("statue < PREPARED");
+    if(this->getStatus() < AUDIO_PREPARED || this->getStatus() > AUDIO_PAUSE){
+        LOGE("statue < PREPARED || state > PAUSE, now status is : %d", this->getStatus());
         return;
     }
 
     this->setStatus(AUDIO_STOP);
 
-    // set the player's state to stop
+    av_dict_free(&this->format_opts);
+    //remove pic
+    if(this->jmidGetPic)
+        unlink(this->picPath);
+
+    LOGD("stop bqPlayer.\n");
     SLresult result = (*this->bqPlayerPlay)->SetPlayState(this->bqPlayerPlay, SL_PLAYSTATE_STOPPED);
     if(SL_RESULT_SUCCESS != result){
         LOGE("set the player's state to playing result : %d\n", result);
         return;
     }
 
+    swr_close(this->swr_ctx);
     swr_free(&this->swr_ctx);
+
     avformat_close_input(&this->pFormatCtx);
     avformat_free_context(this->pFormatCtx);
-
     avcodec_close(this->avCodecContext);
     avcodec_free_context(&this->avCodecContext);
 
+    LOGD("start clean queue.");
     AVPacket *packet;
-    while(this->audioQueue->getAvpacket(&packet) > 0){
+    while(this->audioQueue->getAvpacket(&packet, false) > 0){
         av_packet_free(&packet);
     }
+    LOGD("clean OK");
 }
 
 void AudioPlayer::pause() {
+    if(this->getStatus() != AUDIO_PLAYING){
+        LOGE("statue not playing");
+        return;
+    }
     SLresult  result = (*this->bqPlayerPlay)->SetPlayState(this->bqPlayerPlay, SL_PLAYSTATE_PAUSED);
     if(SL_RESULT_SUCCESS != result){
         LOGE("set the player's state to pause");
@@ -632,7 +676,8 @@ SLresult AudioPlayer::createBufferQueue(int sampleRate, int bufSize) {
 void AudioPlayer::bqPlayerCallback(SLAndroidSimpleBufferQueueItf bq, void *context) {
 
     AVPacket *avPacket = NULL;
-    if(this->audioQueue->getAvpacket(&avPacket) > 0){
+    int pack = this->audioQueue->getAvpacket(&avPacket, true);
+    if(pack > 0){
         int ret = avcodec_send_packet(this->avCodecContext, avPacket);
         if (ret != 0){
             LOGE("avcode send packet error ret : %d\n", ret);
@@ -677,6 +722,7 @@ void AudioPlayer::bqPlayerCallback(SLAndroidSimpleBufferQueueItf bq, void *conte
         char buf[128];
         sprintf(buf, "%f", this->lastPlayTimeStamp);
         this->onPlayProgressing(buf);
+        this->onCompletion();
     }
 }
 

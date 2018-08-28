@@ -20,7 +20,7 @@ import cn.cnr.player.CNTrace;
 
 public class TestActivity extends AppCompatActivity implements AudioPlayer.OnPreparedListener, AudioPlayer.OnErrorListener,
         AudioPlayer.OnMetadataListener, AudioPlayer.OnBaseInfoListener, AudioPlayer.OnGetPicListener, AudioPlayer.OnBufferUpdateListener,
-        AudioPlayer.onPlayProgressing{
+        AudioPlayer.OnPlayProgressing, AudioPlayer.OnCompletionListener{
 
     private AudioPlayer player = null;
     private ImageView imageView;
@@ -60,6 +60,12 @@ public class TestActivity extends AppCompatActivity implements AudioPlayer.OnPre
                 }
                 break;
 
+                case 5:{
+                     int get = progressBar.getProgress();
+                    progressBar.incrementProgressBy(100 - get);
+                }
+                break;
+
                 default:
                     break;
             }
@@ -85,7 +91,8 @@ public class TestActivity extends AppCompatActivity implements AudioPlayer.OnPre
         player.setBaseInfoListener(this);
         player.setGetPicListener(this, this.getCacheDir().toString());
         player.setBufferUpdateListener(this);
-        player.setPlayProgressing(this);
+        player.setPlayProgressingListener(this);
+        player.setOnCompletionListener(this);
     }
 
     public void audio_prepared(View view) {
@@ -97,11 +104,21 @@ public class TestActivity extends AppCompatActivity implements AudioPlayer.OnPre
     }
 
     public void audio_stop(View view) {
+        imageView.setImageDrawable(null);
+        textView.setText("");
+        CNTrace.d(progressBar.getProgress() + ", " + progressBar.getSecondaryProgress());
+        progressBar.incrementProgressBy( -progressBar.getProgress());
+        progressBar.incrementSecondaryProgressBy( -progressBar.getSecondaryProgress());
         player.stop();
     }
 
     public void audio_pause(View view) {
         player.pause();
+    }
+
+
+    public void audio_resume(View view) {
+        player.resume();
     }
 
     @Override
@@ -161,6 +178,14 @@ public class TestActivity extends AppCompatActivity implements AudioPlayer.OnPre
         Message msg = mHandler.obtainMessage();
         msg.what = 4;
         msg.obj = update;
+        mHandler.sendMessage(msg);
+    }
+
+    @Override
+    public void onCompletion() {
+        CNTrace.d("onCompletion");
+        Message msg = mHandler.obtainMessage();
+        msg.what = 5;
         mHandler.sendMessage(msg);
     }
 }

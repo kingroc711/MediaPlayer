@@ -21,7 +21,7 @@ import cn.cnr.player.CNTrace;
 
 public class WidgetActivity extends AppCompatActivity implements AudioPlayer.OnPreparedListener, AudioPlayer.OnErrorListener,
         AudioPlayer.OnMetadataListener, AudioPlayer.OnBaseInfoListener, AudioPlayer.OnGetPicListener, AudioPlayer.OnBufferUpdateListener,
-        AudioPlayer.onPlayProgressing{
+        AudioPlayer.OnPlayProgressing{
     private ImageButton mPauseButton;
     private AudioPlayer player = null;
     private ImageView imageView;
@@ -86,7 +86,7 @@ public class WidgetActivity extends AppCompatActivity implements AudioPlayer.OnP
         player.setBaseInfoListener(this);
         player.setGetPicListener(this, this.getCacheDir().toString());
         player.setBufferUpdateListener(this);
-        player.setPlayProgressing(this);
+        player.setPlayProgressingListener(this);
         player.setPrepared(editText.getText().toString());
     }
 
@@ -101,6 +101,7 @@ public class WidgetActivity extends AppCompatActivity implements AudioPlayer.OnP
         CNTrace.d("onPrepared : " + s);
         CNTrace.d("player statue : " + player.getStatus());
     }
+
     private void doPauseResume() {
         if (!isPause) {
             isPause = true;

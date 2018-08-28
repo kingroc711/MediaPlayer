@@ -14,7 +14,7 @@ AudioQueue::~AudioQueue() {
     pthread_mutex_destroy(&this->mutexPacket);
     pthread_cond_destroy(&this->condPacket);
 
-    if(this->queuePacket.size() > 0){
+    while(this->queuePacket.size() > 0){
         AVPacket *avPacket = this->queuePacket.front();
         this->queuePacket.pop();
         av_packet_free(&avPacket);
@@ -31,7 +31,7 @@ void AudioQueue::putAvpacket(AVPacket *packet) {
     pthread_mutex_unlock(&this->mutexPacket);
 }
 
-int AudioQueue::getAvpacket(AVPacket **packet) {
+int AudioQueue::getAvpacket(AVPacket **packet, bool wait) {
     int size;
     pthread_mutex_lock(&this->mutexPacket);
     size = this->queuePacket.size();
@@ -40,11 +40,18 @@ int AudioQueue::getAvpacket(AVPacket **packet) {
         this->dataSize = this->dataSize - (*packet)->size;
         this->queuePacket.pop();
         pthread_mutex_unlock(&this->mutexPacket);
-        return size;
     }else{
-        pthread_cond_wait(&this->condPacket, &this->mutexPacket);
-        return -1;
+        if(wait) {
+            pthread_cond_wait(&this->condPacket, &this->mutexPacket);
+            return getAvpacket(packet, true);
+        }else {
+            pthread_mutex_unlock(&this->mutexPacket);
+        }
     }
+
+    //LOGD("packet size : %d\n", size);
+    return size;
+
 }
 
 int AudioQueue::size() {

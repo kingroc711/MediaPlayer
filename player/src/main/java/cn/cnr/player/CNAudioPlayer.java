@@ -17,7 +17,9 @@ class CNAudioPlayer implements AudioPlayer {
     private native void set_start();
     private native void set_stop();
     private native void set_pause();
-    private native void set_onPlayProgressing_listener(onPlayProgressing listener);
+    private native void set_resume();
+    private native void set_onPlayProgressing_listener(OnPlayProgressing listener);
+    private native void set_oncompletion_listener(OnCompletionListener listener);
 
     public CNAudioPlayer(Context context){
         int sampleRate = 0;
@@ -56,6 +58,11 @@ class CNAudioPlayer implements AudioPlayer {
     }
 
     @Override
+    public void resume() {
+        set_resume();
+    }
+
+    @Override
     public void setPrepared(String source) {
         set_prepared(source);
     }
@@ -91,8 +98,13 @@ class CNAudioPlayer implements AudioPlayer {
     }
 
     @Override
-    public void setPlayProgressing(onPlayProgressing listener) {
+    public void setPlayProgressingListener(OnPlayProgressing listener) {
         set_onPlayProgressing_listener(listener);
+    }
+
+    @Override
+    public void setOnCompletionListener(OnCompletionListener listener) {
+        set_oncompletion_listener(listener);
     }
 
     @Override
@@ -102,11 +114,6 @@ class CNAudioPlayer implements AudioPlayer {
 
     @Override
     public void seek(int sec) {
-
-    }
-
-    @Override
-    public void setLooping(boolean looping) {
 
     }
 

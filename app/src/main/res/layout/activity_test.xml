@@ -39,6 +39,19 @@
             />
 
         <Button
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:onClick="audio_stop"
+            android:layout_weight="1"
+            android:text="stop"
+            />
+    </LinearLayout>
+
+    <LinearLayout
+        android:orientation="horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+        <Button
             android:id="@+id/b_pause"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -48,11 +61,12 @@
             />
 
         <Button
+            android:id="@+id/b_resume"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:onClick="audio_stop"
+            android:onClick="audio_resume"
             android:layout_weight="1"
-            android:text="stop"
+            android:text="resume"
             />
     </LinearLayout>
 

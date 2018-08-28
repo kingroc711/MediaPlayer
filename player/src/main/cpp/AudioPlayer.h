@@ -48,6 +48,7 @@ private:
     jmethodID jmidGetPic = NULL;
     jmethodID jmidBufferUpdate = NULL;
     jmethodID jmidPlayProgressing = NULL;
+    jmethodID jmidOnCompletion = NULL;
 
     jobject objOnError = NULL;
     jobject objOnPrepared = NULL;
@@ -56,6 +57,7 @@ private:
     jobject objGetPic = NULL;
     jobject objBufferUpdate = NULL;
     jobject objPlayProgressing = NULL;
+    jobject objOnCompletion = NULL;
 
     AVFormatContext *pFormatCtx = NULL;
     AVCodec *avCodec = NULL;
@@ -63,6 +65,8 @@ private:
     AVCodecParameters *avCodecParameters = NULL;
 
     AudioQueue* audioQueue;
+
+    AVDictionary* format_opts = NULL;
 
     /*PCM*/
     SLObjectItf engineObject = NULL;
@@ -113,6 +117,7 @@ public:
     void onGetPic(const char* path);
     void onBufferUpdate(const char* s);
     void onPlayProgressing(const char *s);
+    void onCompletion();
 
     void prepared_fun();
 
@@ -123,6 +128,8 @@ public:
     SLresult createEngine();
     SLresult createBufferQueue(int sampleRate, int bufSize);
     void bqPlayerCallback(SLAndroidSimpleBufferQueueItf bq, void *context);
+
+    void setOnCompletionListener(jmethodID pID, jobject pJobject);
 };
 
 

@@ -7,9 +7,9 @@ public interface AudioPlayer {
     void start(Context context);
     void pause();
     void stop();
+    void resume();
     void release();
     void seek(int sec);
-    void setLooping(boolean looping);
 
     String getStatus();
     int getStatusInt();
@@ -20,9 +20,14 @@ public interface AudioPlayer {
     void setBaseInfoListener(OnBaseInfoListener listener);
     void setGetPicListener(OnGetPicListener listener, String path);
     void setBufferUpdateListener(OnBufferUpdateListener listener);
-    void setPlayProgressing(onPlayProgressing listener);
+    void setPlayProgressingListener(OnPlayProgressing listener);
+    void setOnCompletionListener(OnCompletionListener listener);
 
-    interface onPlayProgressing{
+    interface OnCompletionListener{
+        void onCompletion();
+    }
+
+    interface OnPlayProgressing{
         void onPlayProgressing(String update);
     }
 

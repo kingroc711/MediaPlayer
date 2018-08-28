@@ -187,6 +187,25 @@ Java_cn_cnr_player_CNAudioPlayer_set_1get_1pic_1listener(JNIEnv *env, jobject in
     env->ReleaseStringUTFChars(path_, path);
 }
 
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_cn_cnr_player_CNAudioPlayer_set_1oncompletion_1listener(JNIEnv *env, jobject instance, jobject listener) {
+    jclass jlz = env->GetObjectClass(listener);
+    if(!jlz){
+        LOGE("get completion listener class fail!");
+        return;
+    }
+
+    jmethodID j = env->GetMethodID(jlz, "onCompletion", "()V");
+    if(!j){
+        LOGE("get on completion method fail!");
+        return;
+    }
+
+    gAudioPlayer->setOnCompletionListener(j, env->NewGlobalRef(listener));
+}
+
 extern "C"
 JNIEXPORT jint JNICALL
 Java_cn_cnr_player_CNAudioPlayer_get_1status(JNIEnv *env, jobject instance) {
@@ -210,5 +229,11 @@ Java_cn_cnr_player_CNAudioPlayer_set_1pause(JNIEnv *env, jobject instance) {
 extern "C"
 JNIEXPORT void JNICALL
 Java_cn_cnr_player_CNAudioPlayer_set_1start(JNIEnv *env, jobject instance) {
+    gAudioPlayer->start();
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_cn_cnr_player_CNAudioPlayer_set_1resume(JNIEnv *env, jobject instance) {
     gAudioPlayer->start();
 }

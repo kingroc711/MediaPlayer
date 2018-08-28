@@ -28,7 +28,7 @@ public:
     ~AudioQueue();
 
     void putAvpacket(AVPacket* packet);
-    int getAvpacket(AVPacket** packet);
+    int getAvpacket(AVPacket** packet, bool wait);
     int size();
     unsigned int getDataSize();
 };
