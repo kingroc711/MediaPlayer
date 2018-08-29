@@ -61,3 +61,10 @@ int AudioQueue::size() {
 unsigned int AudioQueue::getDataSize() {
     return this->dataSize;
 }
+
+void AudioQueue::clean() {
+    AVPacket *packet;
+    while(getAvpacket(&packet, false) > 0){
+        av_packet_free(&packet);
+    }
+}

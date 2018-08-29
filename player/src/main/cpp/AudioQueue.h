@@ -30,6 +30,7 @@ public:
     void putAvpacket(AVPacket* packet);
     int getAvpacket(AVPacket** packet, bool wait);
     int size();
+    void clean();
     unsigned int getDataSize();
 };
 

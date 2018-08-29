@@ -294,16 +294,21 @@ void AudioPlayer::prepared_fun() {
 
     if(avformat_open_input(&this->pFormatCtx, this->audio_path, NULL, &this->format_opts))
     {
-        LOGE("can not open url :%s", this->audio_path);
         avformat_free_context(this->pFormatCtx);
         av_dict_free(&this->format_opts);
+        this->setStatus(AUDIO_CREATE);
 
+        LOGE("can not open url :%s", this->audio_path);
         this->onError("avformat can not open url.", -1);
         return;
     }
 
     if(avformat_find_stream_info(this->pFormatCtx, NULL) < 0)
     {
+        avformat_free_context(this->pFormatCtx);
+        av_dict_free(&this->format_opts);
+        this->setStatus(AUDIO_CREATE);
+
         LOGE("can not find streams from %s", this->audio_path);
         this->onError("can not find streams from url.\n", -1);
         return;
@@ -473,12 +478,8 @@ void AudioPlayer::stop() {
     avcodec_close(this->avCodecContext);
     avcodec_free_context(&this->avCodecContext);
 
-    LOGD("start clean queue.");
-    AVPacket *packet;
-    while(this->audioQueue->getAvpacket(&packet, false) > 0){
-        av_packet_free(&packet);
-    }
-    LOGD("clean OK");
+    av_dict_free(&this->format_opts);
+    this->audioQueue->clean();
 }
 
 void AudioPlayer::pause() {
