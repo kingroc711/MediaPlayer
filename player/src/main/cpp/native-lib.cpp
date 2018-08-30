@@ -237,3 +237,9 @@ JNIEXPORT void JNICALL
 Java_cn_cnr_player_CNAudioPlayer_set_1resume(JNIEnv *env, jobject instance) {
     gAudioPlayer->start();
 }
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_cn_cnr_player_CNAudioPlayer_set_1release(JNIEnv *env, jobject instance) {
+    delete gAudioPlayer;
+}
