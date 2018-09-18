@@ -27,4 +27,10 @@ public class MainActivity extends AppCompatActivity {
         intent.setClass(this, WidgetActivity.class);
         startActivity(intent);
     }
+
+    public void open_opengl(View view) {
+        Intent intent = new Intent();
+        intent.setClass(this, OpenGLActivity.class);
+        startActivity(intent);
+    }
 }

@@ -27,7 +27,8 @@
             </intent-filter>
         </activity>
         <activity android:name="cn.cnr.mediaplayerdemo.TestActivity" />
-        <activity android:name="cn.cnr.mediaplayerdemo.WidgetActivity"></activity>
+        <activity android:name="cn.cnr.mediaplayerdemo.WidgetActivity" />
+        <activity android:name="cn.cnr.mediaplayerdemo.OpenGLActivity"></activity>
     </application>
 
 </manifest>
